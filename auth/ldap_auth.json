@@ -1,0 +1,97 @@
+{
+    "server": "fed.cclrc.ac.uk",
+    "endpoints": [
+        {
+            "endpoint_path": "/myfed",
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": [],
+                    "permissions": "rl"
+                }
+            ],
+            "allowed_ip_addresses": []
+        },
+        {
+            "endpoint_path": "/myfed/tests3",
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "cn",
+                            "value": "mnf98541"
+                        }
+                    ],
+                    "permissions": "rlwd"
+                },
+                {
+                    "attribute_requirements": [   
+                        {
+                            "attribute": "x",
+                            "value": "y"
+                        },
+                       {
+                            "attribute": "a",
+                            "value": "b"
+                        }
+                    ],
+                    "permissions": "rl"
+                }
+            ],
+            "allowed_ip_addresses": [
+                {
+                    "ip": "127.0.0.1",
+                    "permissions": "rlwd"
+                }
+            ]
+        },
+        {
+            "endpoint_path": "/myfed/unprotected",
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": [],
+                    "permissions": "rlwd"
+                }                
+            ],
+            "allowed_ip_addresses": []
+        },
+        {
+            "endpoint_path": "/myfed/authorised",
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "cn",
+                            "value": "mnf98541"
+                        }
+                    ],
+                    "permissions": "rlwd"
+                },
+                {
+                    "attribute_requirements": [   
+                        {
+                            "attribute": "department",
+                            "value": "Sc"
+                        }
+                    ],
+                    "permissions": "rl"
+                }
+            ],
+            "allowed_ip_addresses": []
+        },
+        {
+            "endpoint_path": "/myfed/unauthorised",
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "cn",
+                            "value": "not_authorised_lol"
+                        }
+                    ],
+                    "permissions": "rlwd"
+                }
+            ],
+            "allowed_ip_addresses": []
+        }
+    ]
+}
