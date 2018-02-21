@@ -6,7 +6,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.keys import Keys
-import time
 import json
 
 
@@ -39,8 +38,8 @@ class LDAPAuthTest(unittest.TestCase):
         alert = driver.switch_to.alert
         alert.send_keys(self.username + Keys.TAB + self.password)
         alert.accept()
-        time.sleep(1)
 
+        WebDriverWait(driver, 5).until(EC.title_is("/myfed/authorised/"))
         self.assertIn(self.username, driver.page_source)
         self.assertIn("Smudge", driver.page_source)
 
