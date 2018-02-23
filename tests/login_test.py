@@ -9,7 +9,7 @@ from selenium.webdriver.common.keys import Keys
 import json
 
 
-class LDAPAuthTest(unittest.TestCase):
+class LDAPAuthnTest(unittest.TestCase):
     server = "130.246.223.218"
 
     def setUp(self):
@@ -23,7 +23,7 @@ class LDAPAuthTest(unittest.TestCase):
 
     def test_login(self):
         driver = self.driver
-        driver.get("https://" + self.server + "/myfed/authorised")
+        driver.get("https://" + self.server + "/myfed")
 
         # if we get a pop up, then authentication is on
         popup = True
@@ -39,13 +39,12 @@ class LDAPAuthTest(unittest.TestCase):
         alert.send_keys(self.username + Keys.TAB + self.password)
         alert.accept()
 
-        WebDriverWait(driver, 5).until(EC.title_is("/myfed/authorised/"))
+        WebDriverWait(driver, 5).until(EC.title_is("/myfed/"))
         self.assertIn(self.username, driver.page_source)
-        self.assertIn("Smudge", driver.page_source)
 
     def test_login_fail(self):
         driver = self.driver
-        driver.get("https://" + "wrong_username" + ":" + "wrong_password" + "@" + self.server + "/myfed/authorised")
+        driver.get("https://" + "wrong_username" + ":" + "wrong_password" + "@" + self.server + "/myfed")
 
         # if we get a pop up, then our username and password were wrong
         # if we don't get a pop up then it was accepted for some reason
@@ -65,6 +64,51 @@ class LDAPAuthTest(unittest.TestCase):
         self.driver.close()
 
 
+class LDAPAuthzTest(unittest.TestCase):
+    server = "130.246.223.218"
+
+    def setUp(self):
+        binary = FirefoxBinary("/home/mnf98541/Downloads/firefox-58.0.2/firefox")
+        self.driver = webdriver.Firefox(firefox_binary=binary)
+
+        with open("../credentials.json", "r") as f:
+            f_json = json.load(f)
+            self.username = f_json["louise"]["username"]
+            self.password = f_json["louise"]["password"]
+
+    def test_access_allowed(self):
+        driver = self.driver
+        driver.get("https://" + self.server + "/myfed/ldap/authorised")
+
+        WebDriverWait(driver, 5).until(EC.alert_is_present())
+
+        # test our credentials work
+        alert = driver.switch_to.alert
+        alert.send_keys(self.username + Keys.TAB + self.password)
+        alert.accept()
+
+        WebDriverWait(driver, 5).until(EC.title_is("/myfed/ldap/authorised/"))
+        self.assertIn("Smudge.jpg", driver.page_source)
+
+    def test_access_denied(self):
+        driver = self.driver
+        driver.get("https://" + self.server + "/myfed/ldap/unauthorised")
+
+        WebDriverWait(driver, 5).until(EC.alert_is_present())
+
+        # test our credentials work
+        alert = driver.switch_to.alert
+        alert.send_keys(self.username + Keys.TAB + self.password)
+        alert.accept()
+
+        WebDriverWait(driver, 5).until(EC.title_is("403 Forbidden"))
+
+        self.assertNotIn("Smudge.jpg", driver.page_source)
+
+    def tearDown(self):
+        self.driver.close()
+
+
 class CertificateAuthTest(unittest.TestCase):
     server = "130.246.223.218"
 
@@ -76,7 +120,7 @@ class CertificateAuthTest(unittest.TestCase):
 
     def test_login(self):
         driver = self.driver
-        driver.get("https://" + self.server + "/myfed/unprotected")
+        driver.get("https://" + self.server + "/myfed/cert/authorised")
 
         self.assertIn("CN=louise davies,L=RAL,OU=CLRC,O=eScience,C=UK", driver.page_source)
 
