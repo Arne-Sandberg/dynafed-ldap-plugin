@@ -9,7 +9,30 @@
                     "permissions": "rl"
                 }
             ],
-            "allowed_ip_addresses": []
+            "allowed_ip_addresses": [],
+            "propogate_permissions": false
+        },
+        {
+            "endpoint_path": "/myfed/ldap",
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": [],
+                    "permissions": "rl"
+                }
+            ],
+            "allowed_ip_addresses": [],
+            "propogate_permissions": false
+        },
+        {
+            "endpoint_path": "/myfed/cert",
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": [],
+                    "permissions": "rl"
+                }
+            ],
+            "allowed_ip_addresses": [],
+            "propogate_permissions": false
         },
         {
             "endpoint_path": "/myfed/tests3",
@@ -45,7 +68,7 @@
             ]
         },
         {
-            "endpoint_path": "/myfed/unprotected",
+            "endpoint_path": "/myfed/ldap/unprotected",
             "allowed_attributes": [
                 {
                     "attribute_requirements": [],
@@ -55,7 +78,7 @@
             "allowed_ip_addresses": []
         },
         {
-            "endpoint_path": "/myfed/authorised",
+            "endpoint_path": "/myfed/ldap/authorised",
             "allowed_attributes": [
                 {
                     "attribute_requirements": [
@@ -74,21 +97,20 @@
                         }
                     ],
                     "permissions": "rl"
+                },
+                {
+                    "attribute_requirements": [],
+                    "permissions": "r"
                 }
             ],
             "allowed_ip_addresses": []
         },
         {
-            "endpoint_path": "/myfed/unauthorised",
+            "endpoint_path": "/myfed/ldap/unauthorised",
             "allowed_attributes": [
                 {
-                    "attribute_requirements": [
-                        {
-                            "attribute": "cn",
-                            "value": "not_authorised_lol"
-                        }
-                    ],
-                    "permissions": "rlwd"
+                    "attribute_requirements": [],
+                    "permissions": "r"
                 }
             ],
             "allowed_ip_addresses": []

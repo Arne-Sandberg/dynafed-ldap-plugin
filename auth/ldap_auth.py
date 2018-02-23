@@ -71,7 +71,7 @@ myauthjson = _AuthJSON()
 
 # initialise server outside of isallowed so to reduce set-up/tear-down costs
 s = ldap3.Server(myauthjson.auth_dict["server"])
-c = ldap3.Connection(s)
+c = ldap3.Connection(s, client_strategy=ldap3.RESTARTABLE)
 c.open()
 c.start_tls()
 
