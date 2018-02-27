@@ -1,10 +1,11 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-# Simple script that prints its arguments and then decides if the user has
-# to be authorized
+# A DynaFed that contacts an LDAP server and uses a JSON file
+# to determine whether a user with certain attributes can
+# access a resource
 # usage:
-# ugrauth_example.py <clientname> <remoteaddr> <fqan1> .. <fqanN>
+# ldap_auth.py <clientname> <remoteaddr> <fqan1> .. <fqanN>
 #
 # Return value means:
 # 0 --> access is GRANTED
