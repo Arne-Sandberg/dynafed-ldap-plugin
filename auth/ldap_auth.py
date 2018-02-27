@@ -37,7 +37,7 @@ class _AuthJSON(object):
     path_list = []
 
     def __init__(self):
-        with open("/etc/ugr/conf.d/ldap_auth.json", "r") as f:
+        with open("/etc/ugr/conf.d/freeipa.json", "r") as f:
             self.auth_dict = json.load(f)
             # prepopulate path list so we don't repeatedly parse it
             for endpoint in self.auth_dict["endpoints"]:
@@ -117,15 +117,11 @@ def isallowed(clientname="unknown", remoteaddr="nowhere", resource="none", mode=
         # this should always happen (since we're searching on username) but just to be sure
         user_info = entries[0]
         for item in auth_info["allowed_attributes"]:
-            # if empty set of attributes then just check mode
-            if len(item["attribute_requirements"]) == 0 and mode in item["permissions"]:
-                return 0
-
-            match = False
+            # assume True (meaning empty list matches)
+            # if we get an attribute that doesn't match then we fail this set of attributes
+            match = True
             for attribute in item["attribute_requirements"]:
-                if user_info[attribute["attribute"]] == attribute["value"]:
-                    match = True
-                else:
+                if user_info[attribute["attribute"]] != attribute["value"]:
                     match = False
 
             if match and mode in item["permissions"]:
