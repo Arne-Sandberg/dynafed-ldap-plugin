@@ -15,6 +15,7 @@ import sys
 import json
 import ldap3
 import time
+from cachetools import LRUCache
 
 # A class that one day may implement an authorization list loaded
 # from a file during the initialization of the module.
@@ -75,6 +76,8 @@ c = ldap3.Connection(s, client_strategy=ldap3.RESTARTABLE)
 c.open()
 c.start_tls()
 
+cache = LRUCache(maxsize=256)
+
 
 # The main function that has to be invoked from ugr to determine if a request
 # has to be performed or not
@@ -97,28 +100,26 @@ def isallowed(clientname="unknown", remoteaddr="nowhere", resource="none", mode=
 
     for ip in auth_info["allowed_ip_addresses"]:
         if ip["ip"] == remoteaddr and mode in ip["permissions"]:
-            print time.time() - start_time
             return 0
 
-    # need to know what attributes we want to be returned by the server
-    attributes = []
-    for item in auth_info["allowed_attributes"]:
-        # if empty set of attributes then just check mode
-        if len(item["attribute_requirements"]) == 0 and mode in item["permissions"]:
-            print time.time() - start_time
-            return 0
-        for attribute in item["attribute_requirements"]:
-            if attribute["attribute"] not in attributes:
-                attributes.append(attribute["attribute"])
+    if clientname in cache:
+        # in cache, don't need to do LDAP search
+        entries = cache[clientname]
+    else:
+        c.search("dc=fed,dc=cclrc,dc=ac,dc=uk", "(cn=" + clientname + ")", attributes=ldap3.ALL_ATTRIBUTES)
+        entries = c.entries
+        cache.update([(clientname, entries)])
 
-    c.search("dc=fed,dc=cclrc,dc=ac,dc=uk", "(cn=" + clientname + ")", attributes=attributes)
-    entries = c.entries
     print entries
 
     if len(entries) == 1:
-        # this should always happen but just to be sure
+        # this should always happen (since we're searching on username) but just to be sure
         user_info = entries[0]
         for item in auth_info["allowed_attributes"]:
+            # if empty set of attributes then just check mode
+            if len(item["attribute_requirements"]) == 0 and mode in item["permissions"]:
+                return 0
+
             match = False
             for attribute in item["attribute_requirements"]:
                 if user_info[attribute["attribute"]] == attribute["value"]:
@@ -128,6 +129,7 @@ def isallowed(clientname="unknown", remoteaddr="nowhere", resource="none", mode=
 
             if match and mode in item["permissions"]:
                 print "match!"
+                # for testing, so we can see how long doing LDAP search + match takes
                 print time.time() - start_time
                 # if we match on all attributes for this spec and the mode matches the permissions then let them in!
                 return 0
