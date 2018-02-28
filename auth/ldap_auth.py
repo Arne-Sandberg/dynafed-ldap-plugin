@@ -16,7 +16,7 @@ import sys
 import json
 import ldap3
 import time
-from cachetools import LRUCache
+from cachetools import TTLCache
 
 # A class that one day may implement an authorization list loaded
 # from a file during the initialization of the module.
@@ -37,7 +37,7 @@ class _AuthJSON(object):
     path_list = []
 
     def __init__(self):
-        with open("/etc/ugr/conf.d/freeipa.json", "r") as f:
+        with open("/etc/ugr/conf.d/ldap_auth.json", "r") as f:
             self.auth_dict = json.load(f)
             # prepopulate path list so we don't repeatedly parse it
             for endpoint in self.auth_dict["endpoints"]:
@@ -77,7 +77,8 @@ c = ldap3.Connection(s, client_strategy=ldap3.RESTARTABLE)
 c.open()
 c.start_tls()
 
-cache = LRUCache(maxsize=256)
+# ldap details remain in cache for 30 mins
+cache = TTLCache(maxsize=256, ttl=1800)
 
 
 # The main function that has to be invoked from ugr to determine if a request
