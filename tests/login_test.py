@@ -7,6 +7,8 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.keys import Keys
 import json
+import time
+import requests
 
 
 class LDAPAuthnTest(unittest.TestCase):
@@ -104,6 +106,18 @@ class LDAPAuthzTest(unittest.TestCase):
         WebDriverWait(driver, 5).until(EC.title_is("403 Forbidden"))
 
         self.assertNotIn("Smudge.jpg", driver.page_source)
+
+    def test_download_access_success(self):
+        # use requests here to test we get a 200 response when trying to directly download a file
+
+        r = requests.get("https://" + self.server + "/myfed/ldap/authorised/Smudge.jpg", auth=(self.username, self.password), verify=False)
+        self.assertEqual(r.status_code, 200)
+
+    def test_download_access_fail(self):
+        # use requests here to test we get a 403 response when trying to directly download a file
+
+        r = requests.get("https://" + self.server + "/myfed/ldap/unauthorised/Smudge.jpg", auth=(self.username, self.password), verify=False)
+        self.assertEqual(r.status_code, 403)
 
     def tearDown(self):
         self.driver.close()
