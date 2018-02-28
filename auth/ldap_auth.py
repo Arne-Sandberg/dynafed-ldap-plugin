@@ -112,8 +112,6 @@ def isallowed(clientname="unknown", remoteaddr="nowhere", resource="none", mode=
         entries = c.entries
         cache.update([(clientname, entries)])
 
-    print entries
-
     if len(entries) == 1:
         # this should always happen (since we're searching on username) but just to be sure
         user_info = entries[0]
