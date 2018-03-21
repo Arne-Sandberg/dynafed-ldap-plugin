@@ -87,6 +87,7 @@ def isallowed(clientname="unknown", remoteaddr="nowhere", resource="none", mode=
     start_time = time.time()
     print clientname
     print resource
+    print keys
 
     result = myauthjson.auth_info_for_path(resource)
     auth_info = result["auth_info"]
@@ -104,10 +105,12 @@ def isallowed(clientname="unknown", remoteaddr="nowhere", resource="none", mode=
         if ip["ip"] == remoteaddr and mode in ip["permissions"]:
             return 0
 
+    cache_miss = False
     if clientname in cache:
         # in cache, don't need to do LDAP search
         entries = cache[clientname]
     else:
+        cache_miss = True
         c.search("dc=fed,dc=cclrc,dc=ac,dc=uk", "(cn=" + clientname + ")", attributes=ldap3.ALL_ATTRIBUTES)
         entries = c.entries
         cache.update([(clientname, entries)])
@@ -124,9 +127,12 @@ def isallowed(clientname="unknown", remoteaddr="nowhere", resource="none", mode=
                     match = False
 
             if match and mode in item["permissions"]:
-                print "match!"
                 # for testing, so we can see how long doing LDAP search + match takes
-                print time.time() - start_time
+                if cache_miss:
+                    print "ldap cache miss: " + str(time.time() - start_time)
+                else:
+                    print "ldap cache hit: " + str(time.time() - start_time)
+
                 # if we match on all attributes for this spec and the mode matches the permissions then let them in!
                 return 0
 
