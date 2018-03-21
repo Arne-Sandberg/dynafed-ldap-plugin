@@ -123,7 +123,7 @@ def isallowed(clientname="unknown", remoteaddr="nowhere", resource="none", mode=
             # if we get an attribute that doesn't match then we fail this set of attributes
             match = True
             for attribute in item["attribute_requirements"]:
-                if user_info[attribute["attribute"]] != attribute["value"]:
+                if attribute["attribute"] not in user_info or user_info[attribute["attribute"]] != attribute["value"]:
                     match = False
 
             if match and mode in item["permissions"]:
