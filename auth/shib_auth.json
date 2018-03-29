@@ -1,0 +1,63 @@
+{
+    "server": "fed.cclrc.ac.uk",
+    "endpoints": [
+        {
+            "endpoint_path": "/myfed",
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": [],
+                    "permissions": "rl"
+                }
+            ],
+            "allowed_ip_addresses": [],
+            "propogate_permissions": false
+        },
+        {
+            "endpoint_path": "/myfed/shib",
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": [],
+                    "permissions": "rl"
+                }
+            ],
+            "allowed_ip_addresses": [],
+            "propogate_permissions": false
+        },
+        {
+            "endpoint_path": "/myfed/shib/unprotected",
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": [],
+                    "permissions": "rlwd"
+                }                
+            ],
+            "allowed_ip_addresses": []
+        },
+        {
+            "endpoint_path": "/myfed/shib/authorised",
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "cn",
+                            "value": "Me Myself And I"
+                        }
+                    ],
+                    "permissions": "rlwd"
+                }
+            ],
+            "allowed_ip_addresses": []
+        },
+        {
+            "endpoint_path": "/myfed/shib/unauthorised",
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": [],
+                    "permissions": "r"
+                }
+            ],
+            "allowed_ip_addresses": [],
+            "propogate_permissions": false
+        }
+    ]
+}
