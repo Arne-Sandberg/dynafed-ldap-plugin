@@ -35,39 +35,6 @@
             "propogate_permissions": false
         },
         {
-            "endpoint_path": "/myfed/tests3",
-            "allowed_attributes": [
-                {
-                    "attribute_requirements": [
-                        {
-                            "attribute": "cn",
-                            "value": "mnf98541"
-                        }
-                    ],
-                    "permissions": "rlwd"
-                },
-                {
-                    "attribute_requirements": [   
-                        {
-                            "attribute": "x",
-                            "value": "y"
-                        },
-                       {
-                            "attribute": "a",
-                            "value": "b"
-                        }
-                    ],
-                    "permissions": "rl"
-                }
-            ],
-            "allowed_ip_addresses": [
-                {
-                    "ip": "127.0.0.1",
-                    "permissions": "rlwd"
-                }
-            ]
-        },
-        {
             "endpoint_path": "/myfed/ldap/unprotected",
             "allowed_attributes": [
                 {
@@ -97,10 +64,6 @@
                         }
                     ],
                     "permissions": "rl"
-                },
-                {
-                    "attribute_requirements": [],
-                    "permissions": "r"
                 }
             ],
             "allowed_ip_addresses": []
@@ -113,7 +76,8 @@
                     "permissions": "r"
                 }
             ],
-            "allowed_ip_addresses": []
+            "allowed_ip_addresses": [],
+            "propogate_permissions": false
         }
     ]
 }
