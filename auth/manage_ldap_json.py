@@ -2,6 +2,7 @@ from __future__ import print_function, unicode_literals
 import json
 import argparse
 import ldap3
+from tabulate import tabulate
 
 # needed or python 2 and 3 compabilility to check str types
 try:
@@ -61,6 +62,28 @@ def verify(args):
             if not isinstance(endpoint["allowed_ip_addresses"], list):
                 print(str(endpoint["allowed_ip_addresses"]) + " is not a list, allowed_ip_addresses should be a list for endpoint list index " + str(index))
                 return 1
+
+            for ip_index, allowed_ip_address in enumerate(endpoint["allowed_ip_addresses"]):
+                if not isinstance(allowed_ip_address, dict):
+                    print("allowed_ip_addresses should be a list of objects, allowed_ip_addresses list index " + str(ip_index) + " endpoint list index " + str(index) + " has an allowed_ip_addresses list item that is not an object")
+                    return 1
+
+                if "ip" not in allowed_ip_address:
+                    print("No ip specified in allowed_ip_addresses list index " + str(ip_index) + " endpoint list index " + str(index))
+                    return 1
+
+                if "permissions" not in allowed_ip_address:
+                    print("No permissions specified in allowed_ip_addresses list index " + str(ip_index) + " endpoint list index " + str(index))
+                    return 1
+
+                if not isinstance(allowed_ip_address["ip"], basestring):
+                    print("allowed_ip_address ip should be a string, in allowed_ip_addresses list index " + str(ip_index) + " endpoint list index " + str(index))
+                    return 1
+
+                # use sets to check that only r, l, w and d values are allowed, it does allow for empty permissions
+                if not set(allowed_ip_address["permissions"]) <= set([u"r", u"w", u"l", u"d"]):
+                    print("allowed_ip_address permissions should be a string containing any of the modes r (read) l (list) w (write) d (delete), in allowed_ip_address list index " + str(ip_index) + " endpoint list index " + str(index))
+                    return 1
 
             if "propogate_permissions" in endpoint and not isinstance(endpoint["propogate_permissions"], bool):
                 print(str(endpoint["propogate_permissions"]) + " is not a bool, propogate_permissions should be a bool for endpoint list index " + str(index))
@@ -130,6 +153,78 @@ def list_endpoints(args):
 
     for endpoint in config_json["endpoints"]:
         print(endpoint["endpoint_path"])
+        return 0
+
+
+def endpoint_info(args):
+    if verify(args) != 0:
+        print("Config file not valid, please use the verify function to debug the config file")
+        return 1
+
+    with open(args.file, "r") as f:
+        config_json = json.load(f)
+
+    for endpoint in config_json["endpoints"]:
+        if endpoint["endpoint_path"] == args.endpoint_path:
+            # can just print JSON, or try and tidy the data up a bit
+            if args.json:
+                print(json.dumps(endpoint, indent=4))
+                return 0
+
+            print("Endpoint path: " + endpoint["endpoint_path"] + "\n")
+            if "propogate_permissions" in endpoint:
+                print("Propogate permissions: " + str(endpoint["propogate_permissions"]))
+            else:
+                print("Propogate permissions: True")
+
+            print("\nAllowed ips")
+            ip_table = {"r": [], "l": [], "w": [], "d": []}
+            for ip in endpoint["allowed_ip_addresses"]:
+                if "r" in ip["permissions"]:
+                    ip_table["r"].append(ip["ip"])
+                if "l" in ip["permissions"]:
+                    ip_table["l"].append(ip["ip"])
+                if "w" in ip["permissions"]:
+                    ip_table["w"].append(ip["ip"])
+                if "d" in ip["permissions"]:
+                    ip_table["d"].append(ip["ip"])
+
+            print(tabulate(ip_table, headers=["read", "list", "write", "delete"]))
+            print("\nAllowed Attributes")
+            attribute_table = {"r": [], "l": [], "w": [], "d": []}
+            for allowed_attributes in endpoint["allowed_attributes"]:
+                # empty attribute list means we let anything have those permissions
+                attribute_str = "Anything"
+                for attribute in allowed_attributes["attribute_requirements"]:
+                    if attribute_str == "Anything":
+                        attribute_str = attribute["attribute"] + " = " + attribute["value"]
+                    else:
+                        attribute_str = " AND " + attribute["attribute"] + " = " + attribute["value"]
+
+                if "r" in allowed_attributes["permissions"]:
+                    if len(attribute_table["r"]) != 0:
+                        attribute_table["r"].append(" OR " + attribute_str)
+                    else:
+                        attribute_table["r"].append(attribute_str)
+                if "l" in allowed_attributes["permissions"]:
+                    if len(attribute_table["l"]) != 0:
+                        attribute_table["l"].append(" OR " + attribute_str)
+                    else:
+                        attribute_table["l"].append(attribute_str)
+                if "w" in allowed_attributes["permissions"]:
+                    if len(attribute_table["w"]) != 0:
+                        attribute_table["w"].append(" OR " + attribute_str)
+                    else:
+                        attribute_table["w"].append(attribute_str)
+                if "d" in allowed_attributes["permissions"]:
+                    if len(attribute_table["d"]) != 0:
+                        attribute_table["d"].append(" OR " + attribute_str)
+                    else:
+                        attribute_table["d"].append(attribute_str)
+
+            print(tabulate(attribute_table, headers=["read", "list", "write", "delete"]))
+            return 0
+
 
 # top level argument parser
 parser = argparse.ArgumentParser()
@@ -142,9 +237,16 @@ subparsers = parser.add_subparsers(title="subcommands", description="Functions t
 parser_verify = subparsers.add_parser("verify", help="Verify that the JSON file is valid.")
 parser_verify.set_defaults(func=verify)
 
-# parser for add command
+# parser for list command
 parser_list = subparsers.add_parser("list", help="List all endpoints in file")
 parser_list.set_defaults(func=list_endpoints)
+
+# parser for info command
+parser_info = subparsers.add_parser("info", help="Get the configuration information for an endpoint")
+parser_info.add_argument("endpoint_path", help="Endpoint path to get info on")
+parser_info.add_argument("--json", action="store_true", help="Just print the JSON entry")
+parser_info.set_defaults(func=endpoint_info)
+
 
 args = parser.parse_args()
 args.func(args)
