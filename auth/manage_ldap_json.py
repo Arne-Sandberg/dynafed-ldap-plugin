@@ -3,6 +3,8 @@ import json
 import argparse
 import ldap3
 from tabulate import tabulate
+import sys
+import os
 
 # needed or python 2 and 3 compabilility to check str types
 try:
@@ -12,6 +14,9 @@ except NameError:
 
 
 def verify(args):
+    if args.surpress_verify_output:
+        sys.stdout = open(os.devnull, "w")
+
     try:
         with open(args.file, "r") as f:
             config_json = json.load(f)
@@ -144,6 +149,9 @@ def verify(args):
 
 
 def list_endpoints(args):
+    args.surpress_verify_output = True
+    # restore stdout
+    sys.stdout = sys.__stdout__
     if verify(args) != 0:
         print("Config file not valid, please use the verify function to debug the config file")
         return 1
@@ -153,10 +161,14 @@ def list_endpoints(args):
 
     for endpoint in config_json["endpoints"]:
         print(endpoint["endpoint_path"])
-        return 0
+
+    return 0
 
 
 def endpoint_info(args):
+    args.surpress_verify_output = True
+    # restore stdout
+    sys.stdout = sys.__stdout__
     if verify(args) != 0:
         print("Config file not valid, please use the verify function to debug the config file")
         return 1
@@ -235,6 +247,7 @@ subparsers = parser.add_subparsers(title="subcommands", description="Functions t
 
 # parser for verify command
 parser_verify = subparsers.add_parser("verify", help="Verify that the JSON file is valid.")
+parser_verify.add_argument("--surpress-verify-output", action="store_true", help=argparse.SUPPRESS)  # hidden option to tell us to surpress output
 parser_verify.set_defaults(func=verify)
 
 # parser for list command
