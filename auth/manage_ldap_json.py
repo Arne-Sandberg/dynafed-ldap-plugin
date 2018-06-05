@@ -383,6 +383,30 @@ def add_endpoint(args):
     return 0
 
 
+def remove_endpoint(args):
+    args.surpress_verify_output = True
+    if verify(args) != 0:
+        print("Config file not valid, please use the verify function to debug the config file")
+        return 1
+    # restore stdout
+    sys.stdout = sys.__stdout__
+
+    with open(args.file, "r") as f:
+        config_json = json.load(f)
+
+    for endpoint in config_json["endpoints"]:
+        if endpoint["endpoint_path"] == args.endpoint_path:
+            pretty_print_endpoint(endpoint)
+            remove_confirm = prompt_bool("Confirm that you want to remove the above endpoint configuration from the file? (Y/n) ")
+
+            if remove_confirm:
+                config_json["endpoints"].remove(endpoint)
+                with open(args.file, "w") as f:
+                    json.dump(config_json, f, indent=4)
+
+            return 0
+
+
 # top level argument parser
 parser = argparse.ArgumentParser()
 
@@ -409,6 +433,11 @@ parser_info.set_defaults(func=endpoint_info)
 parser_add = subparsers.add_parser("add", help="Add a new endpoint to the authorisation file")
 parser_add.add_argument("endpoint_path", help="Endpoint path to add authorisation info for")
 parser_add.set_defaults(func=add_endpoint)
+
+# parser for remove command
+parser_remove = subparsers.add_parser("remove", help="Remove a new endpoint to the authorisation file")
+parser_remove.add_argument("endpoint_path", help="Endpoint path to remove from authorisation file")
+parser_remove.set_defaults(func=remove_endpoint)
 
 args = parser.parse_args()
 args.func(args)
