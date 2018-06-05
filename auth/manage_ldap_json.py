@@ -5,12 +5,23 @@ import ldap3
 from tabulate import tabulate
 import sys
 import os
+import socket
 
-# needed or python 2 and 3 compabilility to check str types
+# needed for python 2 and 3 compabilility to check str types
 try:
+    # python 2 case
     basestring
 except NameError:
+    # python 3 case
     basestring = str
+
+# needed for python 2 and 3 compabilility to get user input
+try:
+    # python 2 case
+    input = raw_input
+except NameError:
+    # python 3 case
+    pass
 
 
 def verify(args):
@@ -150,11 +161,11 @@ def verify(args):
 
 def list_endpoints(args):
     args.surpress_verify_output = True
-    # restore stdout
-    sys.stdout = sys.__stdout__
     if verify(args) != 0:
         print("Config file not valid, please use the verify function to debug the config file")
         return 1
+    # restore stdout
+    sys.stdout = sys.__stdout__
 
     with open(args.file, "r") as f:
         config_json = json.load(f)
@@ -165,13 +176,69 @@ def list_endpoints(args):
     return 0
 
 
+def pretty_print_endpoint(endpoint):
+    print("Endpoint path: " + endpoint["endpoint_path"] + "\n")
+    if "propogate_permissions" in endpoint:
+        print("Propogate permissions: " + str(endpoint["propogate_permissions"]))
+    else:
+        print("Propogate permissions: True")
+
+    print("\nAllowed ips")
+    ip_table = {"r": [], "l": [], "w": [], "d": []}
+    for ip in endpoint["allowed_ip_addresses"]:
+        if "r" in ip["permissions"]:
+            ip_table["r"].append(ip["ip"])
+        if "l" in ip["permissions"]:
+            ip_table["l"].append(ip["ip"])
+        if "w" in ip["permissions"]:
+            ip_table["w"].append(ip["ip"])
+        if "d" in ip["permissions"]:
+            ip_table["d"].append(ip["ip"])
+
+    print(tabulate(ip_table, headers=["read", "list", "write", "delete"]))
+    print("\nAllowed Attributes")
+    attribute_table = {"r": [], "l": [], "w": [], "d": []}
+    for allowed_attributes in endpoint["allowed_attributes"]:
+        # empty attribute list means we let anything have those permissions
+        attribute_str = "Anything"
+        for attribute in allowed_attributes["attribute_requirements"]:
+            if attribute_str == "Anything":
+                attribute_str = attribute["attribute"] + " = " + attribute["value"]
+            else:
+                attribute_str = attribute_str + " AND " + attribute["attribute"] + " = " + attribute["value"]
+
+        if "r" in allowed_attributes["permissions"]:
+            if len(attribute_table["r"]) != 0:
+                attribute_table["r"].append(" OR " + attribute_str)
+            else:
+                attribute_table["r"].append(attribute_str)
+        if "l" in allowed_attributes["permissions"]:
+            if len(attribute_table["l"]) != 0:
+                attribute_table["l"].append(" OR " + attribute_str)
+            else:
+                attribute_table["l"].append(attribute_str)
+        if "w" in allowed_attributes["permissions"]:
+            if len(attribute_table["w"]) != 0:
+                attribute_table["w"].append(" OR " + attribute_str)
+            else:
+                attribute_table["w"].append(attribute_str)
+        if "d" in allowed_attributes["permissions"]:
+            if len(attribute_table["d"]) != 0:
+                attribute_table["d"].append(" OR " + attribute_str)
+            else:
+                attribute_table["d"].append(attribute_str)
+
+    print(tabulate(attribute_table, headers=["read", "list", "write", "delete"]))
+    return 0
+
+
 def endpoint_info(args):
     args.surpress_verify_output = True
-    # restore stdout
-    sys.stdout = sys.__stdout__
     if verify(args) != 0:
         print("Config file not valid, please use the verify function to debug the config file")
         return 1
+    # restore stdout
+    sys.stdout = sys.__stdout__
 
     with open(args.file, "r") as f:
         config_json = json.load(f)
@@ -181,61 +248,139 @@ def endpoint_info(args):
             # can just print JSON, or try and tidy the data up a bit
             if args.json:
                 print(json.dumps(endpoint, indent=4))
-                return 0
-
-            print("Endpoint path: " + endpoint["endpoint_path"] + "\n")
-            if "propogate_permissions" in endpoint:
-                print("Propogate permissions: " + str(endpoint["propogate_permissions"]))
             else:
-                print("Propogate permissions: True")
+                pretty_print_endpoint(endpoint)
 
-            print("\nAllowed ips")
-            ip_table = {"r": [], "l": [], "w": [], "d": []}
-            for ip in endpoint["allowed_ip_addresses"]:
-                if "r" in ip["permissions"]:
-                    ip_table["r"].append(ip["ip"])
-                if "l" in ip["permissions"]:
-                    ip_table["l"].append(ip["ip"])
-                if "w" in ip["permissions"]:
-                    ip_table["w"].append(ip["ip"])
-                if "d" in ip["permissions"]:
-                    ip_table["d"].append(ip["ip"])
-
-            print(tabulate(ip_table, headers=["read", "list", "write", "delete"]))
-            print("\nAllowed Attributes")
-            attribute_table = {"r": [], "l": [], "w": [], "d": []}
-            for allowed_attributes in endpoint["allowed_attributes"]:
-                # empty attribute list means we let anything have those permissions
-                attribute_str = "Anything"
-                for attribute in allowed_attributes["attribute_requirements"]:
-                    if attribute_str == "Anything":
-                        attribute_str = attribute["attribute"] + " = " + attribute["value"]
-                    else:
-                        attribute_str = " AND " + attribute["attribute"] + " = " + attribute["value"]
-
-                if "r" in allowed_attributes["permissions"]:
-                    if len(attribute_table["r"]) != 0:
-                        attribute_table["r"].append(" OR " + attribute_str)
-                    else:
-                        attribute_table["r"].append(attribute_str)
-                if "l" in allowed_attributes["permissions"]:
-                    if len(attribute_table["l"]) != 0:
-                        attribute_table["l"].append(" OR " + attribute_str)
-                    else:
-                        attribute_table["l"].append(attribute_str)
-                if "w" in allowed_attributes["permissions"]:
-                    if len(attribute_table["w"]) != 0:
-                        attribute_table["w"].append(" OR " + attribute_str)
-                    else:
-                        attribute_table["w"].append(attribute_str)
-                if "d" in allowed_attributes["permissions"]:
-                    if len(attribute_table["d"]) != 0:
-                        attribute_table["d"].append(" OR " + attribute_str)
-                    else:
-                        attribute_table["d"].append(attribute_str)
-
-            print(tabulate(attribute_table, headers=["read", "list", "write", "delete"]))
             return 0
+
+
+def prompt_bool(message):
+    while True:
+        prompt = input(message).lower()
+        true_values = {"t", "true", "y", "yes", "ok"}
+        false_values = {"f", "false", "n", "no"}
+        if prompt in true_values:
+            return True
+        elif prompt in false_values:
+            return False
+        else:
+            print("Invalid input, please enter a yes or no response")
+
+
+def add_endpoint(args):
+    args.surpress_verify_output = True
+    if verify(args) != 0:
+        print("Config file not valid, please use the verify function to debug the config file")
+        return 1
+    # restore stdout
+    sys.stdout = sys.__stdout__
+
+    with open(args.file, "r") as f:
+        config_json = json.load(f)
+
+    # need to create an endpoint entry by querying the user
+    new_endpoint = {
+        "endpoint_path": args.endpoint_path,
+        "allowed_attributes": [],
+        "allowed_ip_addresses": []
+    }
+
+    print("Creating config for endpoint " + args.endpoint_path + "\n")
+
+    propogate_permissions = prompt_bool("Should the permissions specified for this path be applied to any of it's children/subfolders not specified in this file? (Y/n) ")
+    new_endpoint["propogate_permissions"] = propogate_permissions
+
+    # query loop for ip address permissions
+    process_ips = prompt_bool("Would you like to specify permissions for specific IP addresses? (Y/n) ")
+    while process_ips:
+        while True:
+            ip = input("Enter ip address: ")
+            # TODO ipv6?
+            try:
+                socket.inet_aton(ip)
+                break
+            except socket.error:
+                print("Invalid ip address")
+        while True:
+            permissions = input("Please enter the permissions you would like to give for this ip. Any combination of r (read) l (list) w (write) and d (delete) are accepted. (r/l/w/d) ").lower()
+            modes = "rlwd"
+            if set(permissions) <= set(modes):
+                break
+            else:
+                print("You entered a character that wasn't r, l, w, or d, please retry")
+
+        # clean up permission string, make sure no duplicates and sort it in order of rlwd
+        clean_permissions = ""
+        if "r" in permissions:
+            clean_permissions = "r"
+        if "l" in permissions:
+            clean_permissions = clean_permissions + "l"
+        if "w" in permissions:
+            clean_permissions = clean_permissions + "w"
+        if "d" in permissions:
+            clean_permissions = clean_permissions + "d"
+
+        new_endpoint["allowed_ip_addresses"].append({"ip": ip, "permissions": clean_permissions})
+
+        process_ips = prompt_bool("Would you like to specify another IP address? (Y/n) ")
+
+    # query loop for attribute permissions
+    process_attributes = prompt_bool("Would you like to specify permissions for LDAP attributes? (Y/n) ")
+    while process_attributes:
+        # can use same variable for both loops - cheeky!
+        attributes = []
+        while process_attributes:
+            attribute = input("Enter attribute name: ")
+            # empty attribute = anon user
+            if not attribute:
+                confirm_empty = prompt_bool("This will apply permissions to any user, continue? (Y/n) ")
+                if confirm_empty:
+                    # break out of loop and ask for permissions
+                    process_attributes = False
+                else:
+                    # this gets us back to start of loop
+                    continue
+            else:
+                # if non empty, process as normal
+                value = input("Enter attribute value: ")
+
+                attributes.append({"attribute": attribute, "value": value})
+                process_attributes = prompt_bool("Would you like to specify another set of attributes? This will require both the previous attributes and the new one to be true (logical AND) (Y/n) ")
+
+        while True:
+            permissions = input("Please enter the permissions you would like to give for these attributes. Any combination of r (read) l (list) w (write) and d (delete) are accepted. (r/l/w/d) ").lower()
+            modes = "rlwd"
+            if set(permissions) <= set(modes):
+                break
+            else:
+                print("You entered a character that wasn't r, l, w, or d, please retry")
+
+        # clean up permission string, make sure no duplicates and sort it in order of rlwd
+        clean_permissions = ""
+        if "r" in permissions:
+            clean_permissions = "r"
+        if "l" in permissions:
+            clean_permissions = clean_permissions + "l"
+        if "w" in permissions:
+            clean_permissions = clean_permissions + "w"
+        if "d" in permissions:
+            clean_permissions = clean_permissions + "d"
+
+        new_endpoint["allowed_attributes"].append({"attribute_requirements": attributes, "permissions": clean_permissions})
+
+        process_attributes = prompt_bool("Would you like to specify another set of attributes? These are independent of other attributes specified (logical OR) (Y/n) ")
+
+    #print(json.dumps(new_endpoint, indent=4))
+    # print output
+    pretty_print_endpoint(new_endpoint)
+
+    confirmation = prompt_bool("Confirm that you want to insert above endpoint into the JSON file? (Y/n) ")
+    if confirmation:
+        config_json["endpoints"].append(new_endpoint)
+        with open(args.file, "w") as f:
+            json.dump(config_json, f, indent=4)
+
+    return 0
 
 
 # top level argument parser
@@ -260,6 +405,10 @@ parser_info.add_argument("endpoint_path", help="Endpoint path to get info on")
 parser_info.add_argument("--json", action="store_true", help="Just print the JSON entry")
 parser_info.set_defaults(func=endpoint_info)
 
+# parser for add command
+parser_add = subparsers.add_parser("add", help="Add a new endpoint to the authorisation file")
+parser_add.add_argument("endpoint_path", help="Endpoint path to add authorisation info for")
+parser_add.set_defaults(func=add_endpoint)
 
 args = parser.parse_args()
 args.func(args)
