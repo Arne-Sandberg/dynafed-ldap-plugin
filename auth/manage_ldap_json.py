@@ -153,6 +153,8 @@ def verify(args):
                         return 1
 
         print("Config file is valid")
+        # restore stdout
+        sys.stdout = sys.__stdout__
         return 0
 
     except ValueError:
@@ -162,10 +164,11 @@ def verify(args):
 def list_endpoints(args):
     args.surpress_verify_output = True
     if verify(args) != 0:
+        # restore stdout
+        sys.stdout = sys.__stdout__
         print("Config file not valid, please use the verify function to debug the config file")
         return 1
-    # restore stdout
-    sys.stdout = sys.__stdout__
+
 
     with open(args.file, "r") as f:
         config_json = json.load(f)
@@ -235,10 +238,10 @@ def pretty_print_endpoint(endpoint):
 def endpoint_info(args):
     args.surpress_verify_output = True
     if verify(args) != 0:
+        # restore stdout
+        sys.stdout = sys.__stdout__
         print("Config file not valid, please use the verify function to debug the config file")
         return 1
-    # restore stdout
-    sys.stdout = sys.__stdout__
 
     with open(args.file, "r") as f:
         config_json = json.load(f)
@@ -270,10 +273,10 @@ def prompt_bool(message):
 def add_endpoint(args):
     args.surpress_verify_output = True
     if verify(args) != 0:
+        # restore stdout
+        sys.stdout = sys.__stdout__
         print("Config file not valid, please use the verify function to debug the config file")
         return 1
-    # restore stdout
-    sys.stdout = sys.__stdout__
 
     with open(args.file, "r") as f:
         config_json = json.load(f)
@@ -386,10 +389,10 @@ def add_endpoint(args):
 def remove_endpoint(args):
     args.surpress_verify_output = True
     if verify(args) != 0:
+        # restore stdout
+        sys.stdout = sys.__stdout__
         print("Config file not valid, please use the verify function to debug the config file")
         return 1
-    # restore stdout
-    sys.stdout = sys.__stdout__
 
     with open(args.file, "r") as f:
         config_json = json.load(f)
@@ -405,6 +408,35 @@ def remove_endpoint(args):
                     json.dump(config_json, f, indent=4)
 
             return 0
+
+
+def server(args):
+    args.surpress_verify_output = True
+    if verify(args) != 0:
+        # restore stdout
+        sys.stdout = sys.__stdout__
+        print("Config file not valid, please use the verify function to debug the config file")
+        return 1
+
+    with open(args.file, "r") as f:
+        config_json = json.load(f)
+
+    if args.server:
+        # check if server given can be contacted
+        try:
+            s = ldap3.Server(args.server)
+            conn = ldap3.Connection(s, auto_bind=True)
+            conn.unbind()
+
+            config_json["server"] = args.server
+
+            with open(args.file, "w") as f:
+                json.dump(config_json, f, indent=4)
+        except ldap3.core.exceptions.LDAPSocketOpenError:
+            print("Cannot connect to LDAP server - is the address correct?")
+    else:
+        print(config_json["server"])
+    return 0
 
 
 # top level argument parser
@@ -438,6 +470,12 @@ parser_add.set_defaults(func=add_endpoint)
 parser_remove = subparsers.add_parser("remove", help="Remove a new endpoint to the authorisation file")
 parser_remove.add_argument("endpoint_path", help="Endpoint path to remove from authorisation file")
 parser_remove.set_defaults(func=remove_endpoint)
+
+# parser for server command
+parser_server = subparsers.add_parser("server", help="Get the name of the LDAP server or provide a new URI and set a new LDAP server")
+parser_server.add_argument("server", nargs="?", help="Supply a server name to set the LDAP server in the configuration")
+parser_server.set_defaults(func=server)
+
 
 args = parser.parse_args()
 args.func(args)
