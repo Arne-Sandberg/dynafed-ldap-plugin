@@ -40,13 +40,15 @@ def verify(args):
             return 1
 
         # check if server given can be contacted
-        try:
-            s = ldap3.Server(config_json["server"])
-            conn = ldap3.Connection(s, auto_bind=True)
-            conn.unbind()
-        except ldap3.core.exceptions.LDAPSocketOpenError:
-            print("Cannot connect to LDAP server - is the address correct?")
-            return 1
+        # ignore blank in case the config doesn't need a server
+        if config_json["server"]:
+            try:
+                s = ldap3.Server(config_json["server"])
+                conn = ldap3.Connection(s, auto_bind=True)
+                conn.unbind()
+            except ldap3.core.exceptions.LDAPSocketOpenError:
+                print("Cannot connect to LDAP server - is the address correct?")
+                return 1
 
         if "endpoints" not in config_json:
             print("No endpoints are specified")
@@ -439,6 +441,74 @@ def server(args):
     return 0
 
 
+def convert_authdb_to_ldap_json(args):
+    with open(args.authdb_file, "r") as f:
+        authdb_json = json.load(f)
+
+    new_config = {
+        "server": "",  # leave server blank as it is unneeded
+        "endpoints": []
+    }
+
+    for vo in authdb_json:
+        for bucket in authdb_json[vo]:
+            path = "/" + vo + "/" + bucket
+            roles = []
+            clientnames = []
+            remoteaddrs = []
+            if "role" in authdb_json[vo][bucket]:
+                roles = authdb_json[vo][bucket]["role"]
+            if "clientname" in authdb_json[vo][bucket]:
+                clientnames = authdb_json[vo][bucket]["clientname"]
+            if "remoteaddr" in authdb_json[vo][bucket]:
+                remoteaddrs = authdb_json[vo][bucket]["remoteaddr"]
+
+            new_endpoint = {
+                "endpoint_path": path,
+                "allowed_attributes": [],
+                "allowed_ip_addresses": [],
+                "propogate_permissions": True  # it propogates down in old format
+            }
+
+            for role in roles:
+                attribute_requirement = {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "role",
+                            "value": role
+                        }
+                    ],
+                    "permissions": roles[role]
+                }
+                new_endpoint["allowed_attributes"].append(attribute_requirement)
+
+            for clientname in clientnames:
+                attribute_requirement = {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "clientname",
+                            "value": clientname
+                        }
+                    ],
+                    "permissions": clientnames[clientname]
+                }
+                new_endpoint["allowed_attributes"].append(attribute_requirement)
+
+            for remoteaddr in remoteaddrs:
+                ip = {
+                    "ip": remoteaddr,
+                    "permissions": remoteaddrs[remoteaddr]
+                }
+                new_endpoint["allowed_ip_addresses"].append(ip)
+
+            new_config["endpoints"].append(new_endpoint)
+
+    with open(args.output_filename, "w") as f:
+        json.dump(new_config, f, indent=4)
+
+    return 0
+
+
 # top level argument parser
 parser = argparse.ArgumentParser()
 
@@ -476,6 +546,11 @@ parser_server = subparsers.add_parser("server", help="Get the name of the LDAP s
 parser_server.add_argument("server", nargs="?", help="Supply a server name to set the LDAP server in the configuration")
 parser_server.set_defaults(func=server)
 
+# parser for convert command
+parser_convert = subparsers.add_parser("convert", help="Convert an old style AuthDB json file into LDAP config json")
+parser_convert.add_argument("authdb_file", help="Path to AuthDB file to convert to LDAP config")
+parser_convert.add_argument("output_filename", help="Path to where you want to store the converted output file")
+parser_convert.set_defaults(func=convert_authdb_to_ldap_json)
 
 args = parser.parse_args()
 args.func(args)
