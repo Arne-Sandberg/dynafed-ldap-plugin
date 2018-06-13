@@ -60,51 +60,68 @@ def verify(args):
 
         for index, endpoint in enumerate(config_json["endpoints"]):
             if not isinstance(endpoint, dict):
-                print("Endpoints should be a list of objects, endpoint list index " + str(index) + " is not an object")
+                print("Endpoints should be a list of objects, endpoint list index " +
+                      str(index) + " is not an object")
                 return 1
 
             if "endpoint_path" not in endpoint:
-                print("No endpoint path specified for endpoint list index " + str(index))
+                print("No endpoint path specified for endpoint list index " +
+                      str(index))
                 return 1
 
             if not isinstance(endpoint["endpoint_path"], basestring):
-                print(str(endpoint["endpoint_path"]) + " is not a string, endpoint_path should be a string for endpoint list index " + str(index))
+                print(str(endpoint["endpoint_path"]) + " is not a string, " +
+                      "endpoint_path should be a string for endpoint list index " +
+                      str(index))
                 return 1
 
             # TODO: bother regexing the endpoint path?
 
             if "allowed_ip_addresses" not in endpoint:
-                print("No allowed ip addresses specified for endpoint list index " + str(index))
+                print("No allowed ip addresses specified for endpoint list index " +
+                      str(index))
                 return 1
 
             if not isinstance(endpoint["allowed_ip_addresses"], list):
-                print(str(endpoint["allowed_ip_addresses"]) + " is not a list, allowed_ip_addresses should be a list for endpoint list index " + str(index))
+                print(str(endpoint["allowed_ip_addresses"]) + " is not a list, " +
+                      "allowed_ip_addresses should be a list for endpoint list index " +
+                      str(index))
                 return 1
 
             for ip_index, allowed_ip_address in enumerate(endpoint["allowed_ip_addresses"]):
                 if not isinstance(allowed_ip_address, dict):
-                    print("allowed_ip_addresses should be a list of objects, allowed_ip_addresses list index " + str(ip_index) + " endpoint list index " + str(index) + " has an allowed_ip_addresses list item that is not an object")
+                    print("allowed_ip_addresses should be a list of objects, " +
+                          "allowed_ip_addresses list index " + str(ip_index) +
+                          " endpoint list index " + str(index) +
+                          " has an allowed_ip_addresses list item that is not an object")
                     return 1
 
                 if "ip" not in allowed_ip_address:
-                    print("No ip specified in allowed_ip_addresses list index " + str(ip_index) + " endpoint list index " + str(index))
+                    print("No ip specified in allowed_ip_addresses list index " +
+                          str(ip_index) + " endpoint list index " + str(index))
                     return 1
 
                 if "permissions" not in allowed_ip_address:
-                    print("No permissions specified in allowed_ip_addresses list index " + str(ip_index) + " endpoint list index " + str(index))
+                    print("No permissions specified in allowed_ip_addresses list index " +
+                          str(ip_index) + " endpoint list index " + str(index))
                     return 1
 
                 if not isinstance(allowed_ip_address["ip"], basestring):
-                    print("allowed_ip_address ip should be a string, in allowed_ip_addresses list index " + str(ip_index) + " endpoint list index " + str(index))
+                    print("allowed_ip_address ip should be a string, in allowed_ip_addresses list index " +
+                          str(ip_index) + " endpoint list index " + str(index))
                     return 1
 
                 # use sets to check that only r, l, w and d values are allowed, it does allow for empty permissions
                 if not set(allowed_ip_address["permissions"]) <= set([u"r", u"w", u"l", u"d"]):
-                    print("allowed_ip_address permissions should be a string containing any of the modes r (read) l (list) w (write) d (delete), in allowed_ip_address list index " + str(ip_index) + " endpoint list index " + str(index))
+                    print("allowed_ip_address permissions should be a string " +
+                          "containing any of the modes r (read) l (list) w " +
+                          "(write) d (delete), in allowed_ip_address list index " +
+                          str(ip_index) + " endpoint list index " + str(index))
                     return 1
 
             if "propogate_permissions" in endpoint and not isinstance(endpoint["propogate_permissions"], bool):
-                print(str(endpoint["propogate_permissions"]) + " is not a bool, propogate_permissions should be a bool for endpoint list index " + str(index))
+                print(str(endpoint["propogate_permissions"]) + " is not a bool, " +
+                      "propogate_permissions should be a bool for endpoint list index " + str(index))
                 return 1
 
             if "allowed_attributes" not in endpoint:
@@ -112,46 +129,64 @@ def verify(args):
                 return 1
 
             if not isinstance(endpoint["allowed_attributes"], list):
-                print(str(endpoint["allowed_attributes"]) + " is not a list, allowed_attributes should be a list for endpoint list index " + str(index))
+                print(str(endpoint["allowed_attributes"]) + " is not a list, " +
+                      "allowed_attributes should be a list for endpoint list index " + str(index))
                 return 1
 
             for attr_index, allowed_attributes in enumerate(endpoint["allowed_attributes"]):
                 if not isinstance(allowed_attributes, dict):
-                    print("allowed_attributes should be a list of objects, attribute_requirements list index " + str(attr_index) + " endpoint list index " + str(index) + " has an allowed_attributes list item that is not an object")
+                    print("allowed_attributes should be a list of objects, " +
+                          "attribute_requirements list index " + str(attr_index) +
+                          " endpoint list index " + str(index) +
+                          " has an allowed_attributes list item that is not an object")
                     return 1
 
                 if "attribute_requirements" not in allowed_attributes:
-                    print("No attribute_requirements specified in attribute_requirements list index " + str(attr_index) + " endpoint list index " + str(index))
+                    print("No attribute_requirements specified in attribute_requirements list index " +
+                          str(attr_index) + " endpoint list index " + str(index))
                     return 1
 
                 if "permissions" not in allowed_attributes:
-                    print("No permissions specified in attribute_requirements list index " + str(attr_index) + " endpoint list index " + str(index))
+                    print("No permissions specified in attribute_requirements list index " +
+                          str(attr_index) + " endpoint list index " + str(index))
                     return 1
 
                 if not isinstance(allowed_attributes["attribute_requirements"], list):
-                    print("attribute_requirements should be a list, in attribute_requirements list index " + str(attr_index) + " endpoint list index " + str(index))
+                    print("attribute_requirements should be a list, in attribute_requirements list index " +
+                          str(attr_index) + " endpoint list index " + str(index))
                     return 1
 
                 # use sets to check that only r, l, w and d values are allowed, it does allow for empty permissions
                 if not set(allowed_attributes["permissions"]) <= set([u"r", u"w", u"l", u"d"]):
-                    print("attribute_requirements permissions should be a string containing any of the modes r (read) l (list) w (write) d (delete), in attribute_requirements list index " + str(attr_index) + " endpoint list index " + str(index))
+                    print("attribute_requirements permissions should be a string " +
+                          "containing any of the modes r (read) l (list) w (write) " +
+                          "d (delete), in attribute_requirements list index " +
+                          str(attr_index) + " endpoint list index " + str(index))
                     return 1
 
                 for attr_req_index, attribute_requirements in enumerate(allowed_attributes["attribute_requirements"]):
                     if not isinstance(attribute_requirements, dict):
-                        print("attribute_requirements should be a list of objects, attribute_requirements list index " + str(attr_index) + " endpoint list index " + str(index) + " has an attribute_requirements list item that is not an object")
+                        print("attribute_requirements should be a list of objects, " +
+                              "attribute_requirements list index " + str(attr_index) +
+                              " endpoint list index " + str(index) +
+                              " has an attribute_requirements list item that is not an object")
                         return 1
 
                     if "attribute" not in attribute_requirements:
-                        print("attribute_requirements items should have an attribute, attribute_requirements list index " + str(attr_index) + " endpoint list index " + str(index))
+                        print("attribute_requirements items should have an attribute, " +
+                              "attribute_requirements list index " + str(attr_index) +
+                              " endpoint list index " + str(index))
                         return 1
 
                     if not isinstance(attribute_requirements["attribute"], basestring):
-                        print("attribute should be a string, attribute_requirements list index " + str(attr_index) + " endpoint list index " + str(index))
+                        print("attribute should be a string, attribute_requirements list index " +
+                              str(attr_index) + " endpoint list index " + str(index))
                         return 1
 
                     if "value" not in attribute_requirements:
-                        print("attribute_requirements items should have a value, attribute_requirements list index " + str(attr_index) + " endpoint list index " + str(index))
+                        print("attribute_requirements items should have a value, " +
+                              "attribute_requirements list index " + str(attr_index) +
+                              " endpoint list index " + str(index))
                         return 1
 
         print("Config file is valid")
@@ -168,9 +203,8 @@ def list_endpoints(args):
     if verify(args) != 0:
         # restore stdout
         sys.stdout = sys.__stdout__
-        print("Config file not valid, please use the verify function to debug the config file")
+        print("Config file not valid, please use the verify function to debug")
         return 1
-
 
     with open(args.file, "r") as f:
         config_json = json.load(f)
@@ -242,7 +276,7 @@ def endpoint_info(args):
     if verify(args) != 0:
         # restore stdout
         sys.stdout = sys.__stdout__
-        print("Config file not valid, please use the verify function to debug the config file")
+        print("Config file not valid, please use the verify function to debug")
         return 1
 
     with open(args.file, "r") as f:
@@ -300,7 +334,7 @@ def add_endpoint(args):
     if verify(args) != 0:
         # restore stdout
         sys.stdout = sys.__stdout__
-        print("Config file not valid, please use the verify function to debug the config file")
+        print("Config file not valid, please use the verify function to debug")
         return 1
 
     with open(args.file, "r") as f:
@@ -315,11 +349,14 @@ def add_endpoint(args):
 
     print("Creating config for endpoint " + args.endpoint_path + "\n")
 
-    propogate_permissions = prompt_bool("Should the permissions specified for this path be applied to any of it's children/subfolders not specified in this file? (Y/n) ")
+    propogate_permissions = prompt_bool("Should the permissions specified for this "
+                                        "path be applied to any of it's children/"
+                                        "subfolders not specified in this file? (Y/n) ")
     new_endpoint["propogate_permissions"] = propogate_permissions
 
     # query loop for ip address permissions
-    process_ips = prompt_bool("Would you like to specify permissions for specific IP addresses? (Y/n) ")
+    process_ips = prompt_bool("Would you like to specify permissions "
+                              "for specific IP addresses? (Y/n) ")
     while process_ips:
         while True:
             ip = input("Enter ip address: ")
@@ -330,12 +367,16 @@ def add_endpoint(args):
             except socket.error:
                 print("Invalid ip address")
 
-        permissions = prompt_permissions("Please enter the permissions you would like to give for this ip. Any combination of r (read) l (list) w (write) and d (delete) are accepted. (r/l/w/d) ")
+        permissions = prompt_permissions("Please enter the permissions you would "
+                                         "like to give for this ip. Any combination "
+                                         "of r (read) l (list) w (write) and d "
+                                         "(delete) are accepted. (r/l/w/d) ")
         new_endpoint["allowed_ip_addresses"].append({"ip": ip, "permissions": permissions})
         process_ips = prompt_bool("Would you like to specify another IP address? (Y/n) ")
 
     # query loop for attribute permissions
-    process_attributes = prompt_bool("Would you like to specify permissions for LDAP attributes? (Y/n) ")
+    process_attributes = prompt_bool("Would you like to specify permissions "
+                                     "for LDAP attributes? (Y/n) ")
     while process_attributes:
         # can use same variable for both loops - cheeky!
         attributes = []
@@ -343,7 +384,8 @@ def add_endpoint(args):
             attribute = input("Enter attribute name: ")
             # empty attribute = anon user
             if not attribute:
-                confirm_empty = prompt_bool("This will apply permissions to any user, continue? (Y/n) ")
+                confirm_empty = prompt_bool("This will apply permissions to any "
+                                            "user, continue? (Y/n) ")
                 if confirm_empty:
                     # break out of loop and ask for permissions
                     process_attributes = False
@@ -355,17 +397,29 @@ def add_endpoint(args):
                 value = input("Enter attribute value: ")
 
                 attributes.append({"attribute": attribute, "value": value})
-                process_attributes = prompt_bool("Would you like to specify another attribute? This will require both the previous attributes and the new one to be true (logical AND) (Y/n) ")
+                process_attributes = prompt_bool("Would you like to specify another attribute? "
+                                                 "This will require both the previous "
+                                                 "attributes and the new one to be "
+                                                 "true (logical AND) (Y/n) ")
 
-        permissions = prompt_permissions("Please enter the permissions you would like to give for these attributes. Any combination of r (read) l (list) w (write) and d (delete) are accepted. (r/l/w/d) ")
-        new_endpoint["allowed_attributes"].append({"attribute_requirements": attributes, "permissions": permissions})
-        process_attributes = prompt_bool("Would you like to specify another set of attributes? These are independent of other attributes specified (logical OR) (Y/n) ")
+        permissions = prompt_permissions("Please enter the permissions you would "
+                                         "like to give for these attributes. Any "
+                                         "combination of r (read) l (list) w (write) "
+                                         "and d (delete) are accepted. (r/l/w/d) ")
 
-    #print(json.dumps(new_endpoint, indent=4))
-    # print output
+        new_endpoint["allowed_attributes"].append({"attribute_requirements": attributes,
+                                                   "permissions": permissions})
+        process_attributes = prompt_bool("Would you like to specify another set "
+                                         "of attributes? These are independent "
+                                         "of other attributes specified "
+                                         "(logical OR) (Y/n) ")
+
+    # print(json.dumps(new_endpoint, indent=4))
+    # print outputl
     pretty_print_endpoint(new_endpoint)
 
-    confirmation = prompt_bool("Confirm that you want to insert above endpoint into the JSON file? (Y/n) ")
+    confirmation = prompt_bool("Confirm that you want to insert above "
+                               "endpoint into the JSON file? (Y/n) ")
     if confirmation:
         config_json["endpoints"].append(new_endpoint)
         with open(args.file, "w") as f:
@@ -379,7 +433,7 @@ def remove_endpoint(args):
     if verify(args) != 0:
         # restore stdout
         sys.stdout = sys.__stdout__
-        print("Config file not valid, please use the verify function to debug the config file")
+        print("Config file not valid, please use the verify function to debug")
         return 1
 
     with open(args.file, "r") as f:
@@ -388,7 +442,8 @@ def remove_endpoint(args):
     for endpoint in config_json["endpoints"]:
         if endpoint["endpoint_path"] == args.endpoint_path:
             pretty_print_endpoint(endpoint)
-            remove_confirm = prompt_bool("Confirm that you want to remove the above endpoint configuration from the file? (Y/n) ")
+            remove_confirm = prompt_bool("Confirm that you want to remove the above "
+                                         "endpoint configuration from the file? (Y/n) ")
 
             if remove_confirm:
                 config_json["endpoints"].remove(endpoint)
@@ -403,7 +458,7 @@ def server(args):
     if verify(args) != 0:
         # restore stdout
         sys.stdout = sys.__stdout__
-        print("Config file not valid, please use the verify function to debug the config file")
+        print("Config file not valid, please use the verify function to debug")
         return 1
 
     with open(args.file, "r") as f:
@@ -500,7 +555,7 @@ def modify_endpoint(args):
     if verify(args) != 0:
         # restore stdout
         sys.stdout = sys.__stdout__
-        print("Config file not valid, please use the verify function to debug the config file")
+        print("Config file not valid, please use the verify function to debug")
         return 1
 
     with open(args.file, "r") as f:
@@ -528,22 +583,27 @@ def modify_endpoint(args):
 
     while True:
         user_selection = input("Enter a number to choose what to edit: ")
-        if user_selection != "1" or user_selection != "2" or user_selection != "3" or user_selection != "4":
+        if (user_selection != "1" or user_selection != "2" or
+                user_selection != "3" or user_selection != "4"):
             break
         else:
             print("Please enter a number 1-4")
 
     # edit path
     if user_selection == "1":
-        new_path = input("Please enter the new path you would like this config to apply to: ")
+        new_path = input("Please enter the new path you would "
+                         "like this config to apply to: ")
         confirm = prompt_bool("Is " + new_path + " correct? (Y/n) ")
         if confirm:
             modified_endpoint["endpoint_path"] = new_path
 
     # edit propogate_permissions
     if user_selection == "2":
-        confirm = prompt_bool("propogate_permissions is currently set to " + str(modified_endpoint["propogate_permissions"]) +
-                              ", would you like to change this to " + str(not modified_endpoint["propogate_permissions"]) + "? (Y/n) ")
+        confirm = prompt_bool("propogate_permissions is currently set to " +
+                              str(modified_endpoint["propogate_permissions"]) +
+                              ", would you like to change this to " +
+                              str(not modified_endpoint["propogate_permissions"]) +
+                              "? (Y/n) ")
         if confirm:
             modified_endpoint["propogate_permissions"] = not modified_endpoint["propogate_permissions"]
 
@@ -555,7 +615,9 @@ def modify_endpoint(args):
                                               "2) Add new IP address(es)\n"
                                               "3) Remove IP address(es)\n")
 
-            if user_ip_command_selection != "1" or user_ip_command_selection != "2" or user_ip_command_selection != "3":
+            if (user_ip_command_selection != "1" or
+                    user_ip_command_selection != "2" or
+                    user_ip_command_selection != "3"):
                 break
             else:
                 print("Please enter a number 1-3")
@@ -573,9 +635,15 @@ def modify_endpoint(args):
                     except socket.error:
                         print("Invalid ip address")
 
-                permissions = prompt_permissions("Please enter the permissions you would like to give for this ip. Any combination of r (read) l (list) w (write) and d (delete) are accepted. (r/l/w/d) ")
-                modified_endpoint["allowed_ip_addresses"].append({"ip": ip, "permissions": permissions})
-                process_ips = prompt_bool("Would you like to specify another IP address? (Y/n) ")
+                permissions = prompt_permissions("Please enter the permissions you "
+                                                 "would like to give for this ip. "
+                                                 "Any combination of r (read) l "
+                                                 "(list) w (write) and d (delete)"
+                                                 " are accepted. (r/l/w/d) ")
+                modified_endpoint["allowed_ip_addresses"].append({"ip": ip,
+                                                                  "permissions": permissions})
+                process_ips = prompt_bool("Would you like to specify"
+                                          "another IP address? (Y/n) ")
 
         else:
             for index, ip in enumerate(modified_endpoint["allowed_ip_addresses"]):
@@ -594,7 +662,10 @@ def modify_endpoint(args):
             # modify permissions
             if user_ip_command_selection == "1":
                 ip = modified_endpoint["allowed_ip_addresses"][int(user_ip_selection) - 1]
-                permissions = prompt_permissions("Currently the IP address " + ip["ip"] + " has the permissions: " + ip["permissions"] + ". Please enter a new permissions string: ")
+                permissions = prompt_permissions("Currently the IP address " +
+                                                 ip["ip"] + " has the permissions: " +
+                                                 ip["permissions"] +
+                                                 ". Please enter a new permissions string: ")
                 ip["permissions"] = permissions
 
             # remove ip
@@ -609,7 +680,9 @@ def modify_endpoint(args):
                                                          "2) Add new set of attributes\n"
                                                          "3) Remove set of attributes\n")
 
-            if user_attribute_set_command_selection != "1" or user_attribute_set_command_selection != "2" or user_attribute_set_command_selection != "3":
+            if (user_attribute_set_command_selection != "1" or
+                    user_attribute_set_command_selection != "2" or
+                    user_attribute_set_command_selection != "3"):
                 break
             else:
                 print("Please enter a number 1-3")
@@ -622,7 +695,8 @@ def modify_endpoint(args):
                 attribute = input("Enter attribute name: ")
                 # empty attribute = anon user
                 if not attribute:
-                    confirm_empty = prompt_bool("This will apply permissions to any user, continue? (Y/n) ")
+                    confirm_empty = prompt_bool("This will apply permissions to "
+                                                "any user, continue? (Y/n) ")
                     if confirm_empty:
                         # break out of loop and ask for permissions
                         process_attributes = False
@@ -634,10 +708,20 @@ def modify_endpoint(args):
                     value = input("Enter attribute value: ")
 
                     attributes.append({"attribute": attribute, "value": value})
-                    process_attributes = prompt_bool("Would you like to specify another attribute? This will require both the previous attributes and the new one to be true (logical AND) (Y/n) ")
+                    process_attributes = prompt_bool("Would you like to specify "
+                                                     "another attribute? This will "
+                                                     "require both the previous "
+                                                     "attributes and the new one "
+                                                     "to be true (logical AND) (Y/n) ")
 
-            permissions = prompt_permissions("Please enter the permissions you would like to give for these attributes. Any combination of r (read) l (list) w (write) and d (delete) are accepted. (r/l/w/d) ")
-            modified_endpoint["allowed_attributes"].append({"attribute_requirements": attributes, "permissions": permissions})
+            permissions = prompt_permissions("Please enter the permissions you "
+                                             "would like to give for these "
+                                             "attributes. Any combination of r "
+                                             "(read) l (list) w (write) and d "
+                                             "(delete) are accepted. (r/l/w/d) ")
+
+            modified_endpoint["allowed_attributes"].append({"attribute_requirements": attributes,
+                                                            "permissions": permissions})
 
         else:
             for index, attribute_set in enumerate(modified_endpoint["allowed_attributes"]):
@@ -645,7 +729,8 @@ def modify_endpoint(args):
                 print(str(index + 1) + ") \n" + json.dumps(attribute_set, indent=4))
 
             while True:
-                user_attribute_set_selection = input("Enter a number to choose what attribute set to edit/delete: ")
+                user_attribute_set_selection = input("Enter a number to choose "
+                                                     "what attribute set to edit/delete: ")
                 try:
                     if int(user_attribute_set_selection) < index + 1 and int(user_attribute_set_selection) > 0:
                         break
@@ -660,7 +745,8 @@ def modify_endpoint(args):
 
             # modify attributes or values
             if user_attribute_set_command_selection == "1":
-                for index, attribute in enumerate(modified_endpoint["allowed_attributes"][int(user_attribute_set_selection) - 1]["attribute_requirements"]):
+                attribute_set = modified_endpoint["allowed_attributes"][int(user_attribute_set_selection) - 1]
+                for index, attribute in enumerate(attribute_set["attribute_requirements"]):
                     print(str(index + 1) + ") Edit " + attribute["attribute"] + " = " + attribute["value"])
 
                 index += 1  # need this to allow for permissions option
@@ -678,17 +764,23 @@ def modify_endpoint(args):
 
                 if user_attribute_selection == str(index + 1):
                     # modify permissions
-                    permissions = prompt_permissions("Please enter the permissions you would like to give for these attributes. Any combination of r (read) l (list) w (write) and d (delete) are accepted. (r/l/w/d) ")
-                    modified_endpoint["allowed_attributes"][int(user_attribute_set_selection) - 1]["permissions"] = permissions
+                    permissions = prompt_permissions("Please enter the permissions "
+                                                     "you would like to give for "
+                                                     "these attributes. Any combination "
+                                                     "of r (read) l (list) w (write) "
+                                                     "and d (delete) are accepted. (r/l/w/d) ")
+                    attribute_set["permissions"] = permissions
                 else:
                     # modify either the attribute name or value
                     attr_index = int(user_attribute_selection) - 1  # we added 1 to make it 1-indexed, so reverse
-                    attribute = modified_endpoint["allowed_attributes"][int(user_attribute_set_selection) - 1]["attribute_requirements"][attr_index]
+                    attribute = attribute_set["attribute_requirements"][attr_index]
                     print("\n1) Change attribute name, currently: " + attribute["attribute"])
                     print("2) Change attribute value, currently: " + attribute["value"])
 
                     while True:
-                        user_attr_val_selection = input("Enter a number to choose whether to edit the attribute name or its value: ")
+                        user_attr_val_selection = input("Enter a number to choose "
+                                                        "whether to edit the attribute "
+                                                        "name or its value: ")
                         try:
                             if int(user_attr_val_selection) < 3 and int(user_attr_val_selection) > 0:
                                 break
@@ -702,7 +794,8 @@ def modify_endpoint(args):
                         while True:
                             attribute_name = input("Enter attribute name: ")
                             if not attribute_name:
-                                confirm_empty = prompt_bool("This will apply permissions to any user, continue? (Y/n) ")
+                                confirm_empty = prompt_bool("This will apply permissions "
+                                                            "to any user, continue? (Y/n) ")
                                 if confirm_empty:
                                     break
                                 else:
@@ -710,11 +803,11 @@ def modify_endpoint(args):
                             else:
                                 break
 
-                        modified_endpoint["allowed_attributes"][int(user_attribute_set_selection) - 1]["attribute_requirements"][attr_index]["attribute"] = attribute_name
+                        attribute_set["attribute_requirements"][attr_index]["attribute"] = attribute_name
 
                     if user_attr_val_selection == "2":
                         attribute_value = input("Enter attribute value: ")
-                        modified_endpoint["allowed_attributes"][int(user_attribute_set_selection) - 1]["attribute_requirements"][attr_index]["value"] = attribute_value
+                        attribute_set["attribute_requirements"][attr_index]["value"] = attribute_value
 
     # return endpoint back to config with any modifications applied
     config_json["endpoints"].append(modified_endpoint)
