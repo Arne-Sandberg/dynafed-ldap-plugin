@@ -272,6 +272,29 @@ def prompt_bool(message):
             print("Invalid input, please enter a yes or no response")
 
 
+def prompt_permissions(message):
+    while True:
+        permissions = input(message).lower()
+        modes = "rlwd"
+        if set(permissions) <= set(modes):
+            break
+        else:
+            print("You entered a character that wasn't r, l, w, or d, please retry")
+
+    # clean up permission string, make sure no duplicates and sort it in order of rlwd
+    clean_permissions = ""
+    if "r" in permissions:
+        clean_permissions = "r"
+    if "l" in permissions:
+        clean_permissions = clean_permissions + "l"
+    if "w" in permissions:
+        clean_permissions = clean_permissions + "w"
+    if "d" in permissions:
+        clean_permissions = clean_permissions + "d"
+
+    return clean_permissions
+
+
 def add_endpoint(args):
     args.surpress_verify_output = True
     if verify(args) != 0:
@@ -306,27 +329,9 @@ def add_endpoint(args):
                 break
             except socket.error:
                 print("Invalid ip address")
-        while True:
-            permissions = input("Please enter the permissions you would like to give for this ip. Any combination of r (read) l (list) w (write) and d (delete) are accepted. (r/l/w/d) ").lower()
-            modes = "rlwd"
-            if set(permissions) <= set(modes):
-                break
-            else:
-                print("You entered a character that wasn't r, l, w, or d, please retry")
 
-        # clean up permission string, make sure no duplicates and sort it in order of rlwd
-        clean_permissions = ""
-        if "r" in permissions:
-            clean_permissions = "r"
-        if "l" in permissions:
-            clean_permissions = clean_permissions + "l"
-        if "w" in permissions:
-            clean_permissions = clean_permissions + "w"
-        if "d" in permissions:
-            clean_permissions = clean_permissions + "d"
-
-        new_endpoint["allowed_ip_addresses"].append({"ip": ip, "permissions": clean_permissions})
-
+        permissions = prompt_permissions("Please enter the permissions you would like to give for this ip. Any combination of r (read) l (list) w (write) and d (delete) are accepted. (r/l/w/d) ")
+        new_endpoint["allowed_ip_addresses"].append({"ip": ip, "permissions": permissions})
         process_ips = prompt_bool("Would you like to specify another IP address? (Y/n) ")
 
     # query loop for attribute permissions
@@ -350,29 +355,10 @@ def add_endpoint(args):
                 value = input("Enter attribute value: ")
 
                 attributes.append({"attribute": attribute, "value": value})
-                process_attributes = prompt_bool("Would you like to specify another set of attributes? This will require both the previous attributes and the new one to be true (logical AND) (Y/n) ")
+                process_attributes = prompt_bool("Would you like to specify another attribute? This will require both the previous attributes and the new one to be true (logical AND) (Y/n) ")
 
-        while True:
-            permissions = input("Please enter the permissions you would like to give for these attributes. Any combination of r (read) l (list) w (write) and d (delete) are accepted. (r/l/w/d) ").lower()
-            modes = "rlwd"
-            if set(permissions) <= set(modes):
-                break
-            else:
-                print("You entered a character that wasn't r, l, w, or d, please retry")
-
-        # clean up permission string, make sure no duplicates and sort it in order of rlwd
-        clean_permissions = ""
-        if "r" in permissions:
-            clean_permissions = "r"
-        if "l" in permissions:
-            clean_permissions = clean_permissions + "l"
-        if "w" in permissions:
-            clean_permissions = clean_permissions + "w"
-        if "d" in permissions:
-            clean_permissions = clean_permissions + "d"
-
-        new_endpoint["allowed_attributes"].append({"attribute_requirements": attributes, "permissions": clean_permissions})
-
+        permissions = prompt_permissions("Please enter the permissions you would like to give for these attributes. Any combination of r (read) l (list) w (write) and d (delete) are accepted. (r/l/w/d) ")
+        new_endpoint["allowed_attributes"].append({"attribute_requirements": attributes, "permissions": permissions})
         process_attributes = prompt_bool("Would you like to specify another set of attributes? These are independent of other attributes specified (logical OR) (Y/n) ")
 
     #print(json.dumps(new_endpoint, indent=4))
@@ -509,6 +495,235 @@ def convert_authdb_to_ldap_json(args):
     return 0
 
 
+def modify_endpoint(args):
+    args.surpress_verify_output = True
+    if verify(args) != 0:
+        # restore stdout
+        sys.stdout = sys.__stdout__
+        print("Config file not valid, please use the verify function to debug the config file")
+        return 1
+
+    with open(args.file, "r") as f:
+        config_json = json.load(f)
+
+    modified_endpoint_index = -1
+    for index, endpoint in enumerate(config_json["endpoints"]):
+        if endpoint["endpoint_path"] == args.endpoint_path:
+            # found our endpoint
+            modified_endpoint_index = index
+            break
+
+    # path not found
+    if modified_endpoint_index == -1:
+        print("Endpoint path not found in the config file")
+        return 1
+
+    modified_endpoint = config_json["endpoints"].pop(modified_endpoint_index)
+
+    pretty_print_endpoint(modified_endpoint)
+    print("\n1) Edit path\n"
+          "2) Edit propogate_permissions\n"
+          "3) Edit IP permissions\n"
+          "4) Edit attribute permissions\n")
+
+    while True:
+        user_selection = input("Enter a number to choose what to edit: ")
+        if user_selection != "1" or user_selection != "2" or user_selection != "3" or user_selection != "4":
+            break
+        else:
+            print("Please enter a number 1-4")
+
+    # edit path
+    if user_selection == "1":
+        new_path = input("Please enter the new path you would like this config to apply to: ")
+        confirm = prompt_bool("Is " + new_path + " correct? (Y/n) ")
+        if confirm:
+            modified_endpoint["endpoint_path"] = new_path
+
+    # edit propogate_permissions
+    if user_selection == "2":
+        confirm = prompt_bool("propogate_permissions is currently set to " + str(modified_endpoint["propogate_permissions"]) +
+                              ", would you like to change this to " + str(not modified_endpoint["propogate_permissions"]) + "? (Y/n) ")
+        if confirm:
+            modified_endpoint["propogate_permissions"] = not modified_endpoint["propogate_permissions"]
+
+    # edit ips
+    if user_selection == "3":
+        while True:
+            user_ip_command_selection = input("\nWhat would you like to do? \n"
+                                              "1) Update exisiting IP address permissions\n"
+                                              "2) Add new IP address(es)\n"
+                                              "3) Remove IP address(es)\n")
+
+            if user_ip_command_selection != "1" or user_ip_command_selection != "2" or user_ip_command_selection != "3":
+                break
+            else:
+                print("Please enter a number 1-3")
+
+        # add new IP doesn't require selecting an old IP so do this first
+        if user_ip_command_selection == "2":
+            process_ips = True
+            while process_ips:
+                while True:
+                    ip = input("Enter ip address: ")
+                    # TODO ipv6?
+                    try:
+                        socket.inet_aton(ip)
+                        break
+                    except socket.error:
+                        print("Invalid ip address")
+
+                permissions = prompt_permissions("Please enter the permissions you would like to give for this ip. Any combination of r (read) l (list) w (write) and d (delete) are accepted. (r/l/w/d) ")
+                modified_endpoint["allowed_ip_addresses"].append({"ip": ip, "permissions": permissions})
+                process_ips = prompt_bool("Would you like to specify another IP address? (Y/n) ")
+
+        else:
+            for index, ip in enumerate(modified_endpoint["allowed_ip_addresses"]):
+                print(str(index + 1) + ") " + ip["ip"] + " : " + ip["permissions"])
+
+            while True:
+                user_ip_selection = input("Enter a number to choose what to edit/delete: ")
+                try:
+                    if int(user_ip_selection) < index + 1 and int(user_ip_selection) > 0:
+                        break
+                    else:
+                        print("Please enter a number 1-" + str(index + 1))
+                except ValueError:
+                    print("Please enter a number 1-" + str(index + 1))
+
+            # modify permissions
+            if user_ip_command_selection == "1":
+                ip = modified_endpoint["allowed_ip_addresses"][int(user_ip_selection) - 1]
+                permissions = prompt_permissions("Currently the IP address " + ip["ip"] + " has the permissions: " + ip["permissions"] + ". Please enter a new permissions string: ")
+                ip["permissions"] = permissions
+
+            # remove ip
+            if user_ip_command_selection == "3":
+                modified_endpoint["allowed_ip_addresses"].pop(int(user_ip_selection - 1))
+
+    # edit LDAP attributes
+    if user_selection == "4":
+        while True:
+            user_attribute_set_command_selection = input("\nWhat would you like to do? \n"
+                                                         "1) Update exisiting set of attributes\n"
+                                                         "2) Add new set of attributes\n"
+                                                         "3) Remove set of attributes\n")
+
+            if user_attribute_set_command_selection != "1" or user_attribute_set_command_selection != "2" or user_attribute_set_command_selection != "3":
+                break
+            else:
+                print("Please enter a number 1-3")
+
+        # don't need to select an existing attribute set to add, so do this first
+        process_attributes = True
+        if user_attribute_set_command_selection == "3":
+            attributes = []
+            while process_attributes:
+                attribute = input("Enter attribute name: ")
+                # empty attribute = anon user
+                if not attribute:
+                    confirm_empty = prompt_bool("This will apply permissions to any user, continue? (Y/n) ")
+                    if confirm_empty:
+                        # break out of loop and ask for permissions
+                        process_attributes = False
+                    else:
+                        # this gets us back to start of loop
+                        continue
+                else:
+                    # if non empty, process as normal
+                    value = input("Enter attribute value: ")
+
+                    attributes.append({"attribute": attribute, "value": value})
+                    process_attributes = prompt_bool("Would you like to specify another attribute? This will require both the previous attributes and the new one to be true (logical AND) (Y/n) ")
+
+            permissions = prompt_permissions("Please enter the permissions you would like to give for these attributes. Any combination of r (read) l (list) w (write) and d (delete) are accepted. (r/l/w/d) ")
+            modified_endpoint["allowed_attributes"].append({"attribute_requirements": attributes, "permissions": permissions})
+
+        else:
+            for index, attribute_set in enumerate(modified_endpoint["allowed_attributes"]):
+                # TODO: need to print smarter...
+                print(str(index + 1) + ") \n" + json.dumps(attribute_set, indent=4))
+
+            while True:
+                user_attribute_set_selection = input("Enter a number to choose what attribute set to edit/delete: ")
+                try:
+                    if int(user_attribute_set_selection) < index + 1 and int(user_attribute_set_selection) > 0:
+                        break
+                    else:
+                        print("Please enter a number 1-" + str(index + 1))
+                except ValueError:
+                    print("Please enter a number 1-" + str(index + 1))
+
+            # delete attribute set
+            if user_attribute_set_command_selection == "3":
+                modified_endpoint["allowed_attributes"].pop(int(user_attribute_set_selection - 1))
+
+            # modify attributes or values
+            if user_attribute_set_command_selection == "1":
+                for index, attribute in enumerate(modified_endpoint["allowed_attributes"][int(user_attribute_set_selection) - 1]["attribute_requirements"]):
+                    print(str(index + 1) + ") Edit " + attribute["attribute"] + " = " + attribute["value"])
+
+                index += 1  # need this to allow for permissions option
+                print(str(index + 1) + ") Edit permissions")
+
+                while True:
+                    user_attribute_selection = input("Enter a number to choose what to edit: ")
+                    try:
+                        if int(user_attribute_selection) < index + 1 and int(user_attribute_selection) > 0:
+                            break
+                        else:
+                            print("Please enter a number 1-" + str(index + 1))
+                    except ValueError:
+                        print("Please enter a number 1-" + str(index + 1))
+
+                if user_attribute_selection == str(index + 1):
+                    # modify permissions
+                    permissions = prompt_permissions("Please enter the permissions you would like to give for these attributes. Any combination of r (read) l (list) w (write) and d (delete) are accepted. (r/l/w/d) ")
+                    modified_endpoint["allowed_attributes"][int(user_attribute_set_selection) - 1]["permissions"] = permissions
+                else:
+                    # modify either the attribute name or value
+                    attr_index = int(user_attribute_selection) - 1  # we added 1 to make it 1-indexed, so reverse
+                    attribute = modified_endpoint["allowed_attributes"][int(user_attribute_set_selection) - 1]["attribute_requirements"][attr_index]
+                    print("\n1) Change attribute name, currently: " + attribute["attribute"])
+                    print("2) Change attribute value, currently: " + attribute["value"])
+
+                    while True:
+                        user_attr_val_selection = input("Enter a number to choose whether to edit the attribute name or its value: ")
+                        try:
+                            if int(user_attr_val_selection) < 3 and int(user_attr_val_selection) > 0:
+                                break
+                            else:
+                                print("Please enter a number 1-2")
+                        except ValueError:
+                            print("Please enter a number 1-2")
+
+                    if user_attr_val_selection == "1":
+                        # empty attribute = anon user
+                        while True:
+                            attribute_name = input("Enter attribute name: ")
+                            if not attribute_name:
+                                confirm_empty = prompt_bool("This will apply permissions to any user, continue? (Y/n) ")
+                                if confirm_empty:
+                                    break
+                                else:
+                                    continue
+                            else:
+                                break
+
+                        modified_endpoint["allowed_attributes"][int(user_attribute_set_selection) - 1]["attribute_requirements"][attr_index]["attribute"] = attribute_name
+
+                    if user_attr_val_selection == "2":
+                        attribute_value = input("Enter attribute value: ")
+                        modified_endpoint["allowed_attributes"][int(user_attribute_set_selection) - 1]["attribute_requirements"][attr_index]["value"] = attribute_value
+
+    # return endpoint back to config with any modifications applied
+    config_json["endpoints"].append(modified_endpoint)
+    with open(args.file, "w") as f:
+        json.dump(config_json, f, indent=4)
+
+    return 0
+
+
 # top level argument parser
 parser = argparse.ArgumentParser()
 
@@ -552,5 +767,11 @@ parser_convert.add_argument("authdb_file", help="Path to AuthDB file to convert 
 parser_convert.add_argument("output_filename", help="Path to where you want to store the converted output file")
 parser_convert.set_defaults(func=convert_authdb_to_ldap_json)
 
-args = parser.parse_args()
-args.func(args)
+# parser for modify command
+parser_modify = subparsers.add_parser("modify", help="Modify the information in an existing endpoint entry")
+parser_modify.add_argument("endpoint_path", help="Endpoint path to modify authorisation info for")
+parser_modify.set_defaults(func=modify_endpoint)
+
+if __name__ == "__main__":
+    args = parser.parse_args()
+    args.func(args)
