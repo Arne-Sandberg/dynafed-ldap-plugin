@@ -255,7 +255,59 @@ class Application(tk.PanedWindow):
             checkbox.pack()
 
         if item in self.permissions_ids:
-            pass
+            self.optionsframe.config(text="Edit permissions")
+
+            holder_frame = tk.Frame(self.optionsframe)
+            holder_frame.pack(side=tk.TOP)
+
+            permissions = self.jsonviewer.item(item)["text"]
+
+            if "r" in permissions:
+                read_state = tk.StringVar(value="r")
+            else:
+                read_state = tk.StringVar(value="")
+
+            if "l" in permissions:
+                list_state = tk.StringVar(value="l")
+            else:
+                list_state = tk.StringVar(value="")
+
+            if "w" in permissions:
+                write_state = tk.StringVar(value="w")
+            else:
+                write_state = tk.StringVar(value="")
+
+            if "d" in permissions:
+                delete_state = tk.StringVar(value="d")
+            else:
+                delete_state = tk.StringVar(value="")
+
+            def update_permissions():
+                curr_permissions = read_state.get() + list_state.get() + write_state.get() + delete_state.get()
+                # need to check if ip permissions or attribute permissions
+                if self.jsonviewer.parent(item) in self.ip_ids:
+                    endpoint = self.jsonviewer.parent(self.jsonviewer.parent(self.jsonviewer.parent(item)))
+                    self.config_json["endpoints"][self.jsonviewer.index(endpoint)]["allowed_ip_addresses"][self.jsonviewer.index(self.jsonviewer.parent(item))]["permissions"] = curr_permissions
+                else:
+                    endpoint = self.jsonviewer.parent(self.jsonviewer.parent(self.jsonviewer.parent(self.jsonviewer.parent(item))))
+                    self.config_json["endpoints"][self.jsonviewer.index(endpoint)]["allowed_attributes"][self.jsonviewer.index(self.jsonviewer.parent(self.jsonviewer.parent(item)))]["permissions"] = curr_permissions
+
+                with open(args.file, "w") as f:
+                    json.dump(self.config_json, f, indent=4)
+
+                self.jsonviewer.item(item, text=curr_permissions)
+
+            read_checkbox = tk.Checkbutton(holder_frame, text="Read", onvalue="r", offvalue="", variable=read_state, command=update_permissions)
+            read_checkbox.pack()
+
+            list_checkbox = tk.Checkbutton(holder_frame, text="List", onvalue="l", offvalue="", variable=list_state, command=update_permissions)
+            list_checkbox.pack()
+
+            write_checkbox = tk.Checkbutton(holder_frame, text="Write", onvalue="w", offvalue="", variable=write_state, command=update_permissions)
+            write_checkbox.pack()
+
+            delete_checkbox = tk.Checkbutton(holder_frame, text="Delete", onvalue="d", offvalue="", variable=delete_state, command=update_permissions)
+            delete_checkbox.pack()
 
         if item in self.ip_ids:
             pass
