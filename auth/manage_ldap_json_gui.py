@@ -156,10 +156,10 @@ class Application(tk.PanedWindow):
         if item == self.server_name_id:
             self.optionsframe.config(text="Edit server name")
 
-            editname_frame = tk.Frame(self.optionsframe)
-            editname_frame.pack()
+            holder_frame = tk.Frame(self.optionsframe)
+            holder_frame.pack()
 
-            textbox = tk.Entry(editname_frame)
+            textbox = tk.Entry(holder_frame)
             textbox.pack(side=tk.LEFT)
 
             def update_servername():
@@ -171,17 +171,17 @@ class Application(tk.PanedWindow):
 
                 self.jsonviewer.item(item, text=server)
 
-            confirm_button = tk.Button(editname_frame, text="Update server name", command=update_servername)
+            confirm_button = tk.Button(holder_frame, text="Update server name", command=update_servername)
             confirm_button.pack(side=tk.RIGHT)
 
         if item == self.endpoints_id:
             # add new endpoint here
             self.optionsframe.config(text="Add new endpoint")
 
-            editname_frame = tk.Frame(self.optionsframe)
-            editname_frame.pack()
+            holder_frame = tk.Frame(self.optionsframe)
+            holder_frame.pack()
 
-            textbox = tk.Entry(editname_frame)
+            textbox = tk.Entry(holder_frame)
             textbox.pack(side=tk.LEFT)
 
             def add_endpoint():
@@ -200,17 +200,17 @@ class Application(tk.PanedWindow):
                 endpoint_id = self.jsonviewer.insert(self.endpoints_id, "end", text=endpoint_path)
                 self.endpoint_ids.append(endpoint_id)
 
-            confirm_button = tk.Button(editname_frame, text="Add new endpoint", command=add_endpoint)
+            confirm_button = tk.Button(holder_frame, text="Add new endpoint", command=add_endpoint)
             confirm_button.pack(side=tk.RIGHT)
 
         if item in self.endpoint_ids:
             self.optionsframe.config(text="Edit " + self.jsonviewer.item(item, "text"))
 
             # need to be able to edit endpoint name, delete endpoint
-            editname_frame = tk.Frame(self.optionsframe)
-            editname_frame.pack(side=tk.TOP)
+            holder_frame = tk.Frame(self.optionsframe)
+            holder_frame.pack(side=tk.TOP)
 
-            textbox = tk.Entry(editname_frame)
+            textbox = tk.Entry(holder_frame)
             textbox.pack(side=tk.LEFT)
 
             def update_path():
@@ -222,7 +222,7 @@ class Application(tk.PanedWindow):
 
                 self.jsonviewer.item(item, text=new_path)
 
-            confirm_button = tk.Button(editname_frame, text="Update endpoint path", command=update_path)
+            confirm_button = tk.Button(holder_frame, text="Update endpoint path", command=update_path)
             confirm_button.pack(side=tk.RIGHT)
 
             def delete_endpoint():
@@ -237,7 +237,22 @@ class Application(tk.PanedWindow):
             delete_button.pack()
 
         if item in self.propogate_permissions_ids:
-            pass
+            self.optionsframe.config(text="Edit propogate_permissions")
+
+            endpoint = self.jsonviewer.parent(self.jsonviewer.parent(item))
+
+            state = tk.BooleanVar(value=self.config_json["endpoints"][self.jsonviewer.index(endpoint)]["propogate_permissions"])
+
+            def update_propogate_permissions():
+                self.config_json["endpoints"][self.jsonviewer.index(endpoint)]["propogate_permissions"] = state.get()
+
+                with open(args.file, "w") as f:
+                    json.dump(self.config_json, f, indent=4)
+
+                self.jsonviewer.item(item, text=str(state.get()))
+
+            checkbox = tk.Checkbutton(self.optionsframe, text="propogate_permissions", onvalue=True, offvalue=False, variable=state, command=update_propogate_permissions)
+            checkbox.pack()
 
         if item in self.permissions_ids:
             pass
