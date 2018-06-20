@@ -4,64 +4,6 @@ import Tkinter as tk
 import ttk
 import json
 import argparse
-import tabulate
-
-
-def pretty_print_endpoint(endpoint):
-    output_str = ""
-    output_str += ("Endpoint path: " + endpoint["endpoint_path"] + "\n")
-    if "propogate_permissions" in endpoint:
-        output_str += ("Propogate permissions: " + str(endpoint["propogate_permissions"]))
-    else:
-        output_str += ("Propogate permissions: True")
-
-    output_str += ("\nAllowed ips")
-    ip_table = {"r": [], "l": [], "w": [], "d": []}
-    for ip in endpoint["allowed_ip_addresses"]:
-        if "r" in ip["permissions"]:
-            ip_table["r"].append(ip["ip"])
-        if "l" in ip["permissions"]:
-            ip_table["l"].append(ip["ip"])
-        if "w" in ip["permissions"]:
-            ip_table["w"].append(ip["ip"])
-        if "d" in ip["permissions"]:
-            ip_table["d"].append(ip["ip"])
-
-    output_str += (tabulate(ip_table, headers=["read", "list", "write", "delete"]))
-    output_str += ("\nAllowed Attributes")
-    attribute_table = {"r": [], "l": [], "w": [], "d": []}
-    for allowed_attributes in endpoint["allowed_attributes"]:
-        # empty attribute list means we let anything have those permissions
-        attribute_str = "Anything"
-        for attribute in allowed_attributes["attribute_requirements"]:
-            if attribute_str == "Anything":
-                attribute_str = attribute["attribute"] + " = " + attribute["value"]
-            else:
-                attribute_str = attribute_str + " AND " + attribute["attribute"] + " = " + attribute["value"]
-
-        if "r" in allowed_attributes["permissions"]:
-            if len(attribute_table["r"]) != 0:
-                attribute_table["r"].append(" OR " + attribute_str)
-            else:
-                attribute_table["r"].append(attribute_str)
-        if "l" in allowed_attributes["permissions"]:
-            if len(attribute_table["l"]) != 0:
-                attribute_table["l"].append(" OR " + attribute_str)
-            else:
-                attribute_table["l"].append(attribute_str)
-        if "w" in allowed_attributes["permissions"]:
-            if len(attribute_table["w"]) != 0:
-                attribute_table["w"].append(" OR " + attribute_str)
-            else:
-                attribute_table["w"].append(attribute_str)
-        if "d" in allowed_attributes["permissions"]:
-            if len(attribute_table["d"]) != 0:
-                attribute_table["d"].append(" OR " + attribute_str)
-            else:
-                attribute_table["d"].append(attribute_str)
-
-    output_str += (tabulate(attribute_table, headers=["read", "list", "write", "delete"]))
-    return output_str
 
 
 class Application(tk.PanedWindow):
@@ -77,7 +19,6 @@ class Application(tk.PanedWindow):
         self.allowed_attribute_set_ids = []
         self.attribute_ids = []
         self.value_ids = []
-        self.old_selection = ""
 
         with open(args.file, "r") as f:
             self.config_json = json.load(f)
@@ -129,8 +70,7 @@ class Application(tk.PanedWindow):
                 self.permissions_ids.append(permissions_id)
 
         self.add(self.jsonviewer)
-        self.jsonviewer.bind("<ButtonRelease-1>", self.selectionChange)
-        self.jsonviewer.bind("<KeyRelease>", self.selectionChange)
+        self.jsonviewer.bind("<<TreeviewSelect>>", self.selectionChange)
 
         self.editframe = tk.Frame(self)
         self.add(self.editframe)
@@ -143,10 +83,6 @@ class Application(tk.PanedWindow):
 
     def selectionChange(self, event):
         item = self.jsonviewer.focus()
-
-        # haven't changed selection, so finish
-        if item == self.old_selection:
-            return
 
         # destroy old fields
         for widget in self.optionsframe.winfo_children():
@@ -388,16 +324,55 @@ class Application(tk.PanedWindow):
             delete_button = tk.Button(self.optionsframe, text="Delete this IP address", command=delete_ip)
             delete_button.pack()
 
+        if self.jsonviewer.item(item)["text"] == "allowed_attributes":
+            pass
+
         if item in self.allowed_attribute_set_ids:
             pass
 
         if item in self.attribute_ids:
-            pass
+            self.optionsframe.config(text="Edit attribute name")
+
+            holder_frame = tk.Frame(self.optionsframe)
+            holder_frame.pack(side=tk.TOP)
+
+            textbox = tk.Entry(holder_frame)
+            textbox.pack(side=tk.LEFT)
+
+            def update_attribute():
+                new_attribute = textbox.get()
+                #self.config_json["endpoints"][self.jsonviewer.index(self.jsonviewer.parent(self.jsonviewer.parent(self.jsonviewer.parent(self.jsonviewer.parent(item)))))]["allowed_attributes"][self.jsonviewer.index(self.jsonviewer.parent(item))]["attribute_requirements"][self.jsonviewer.index(item)]["attribute"] = new_attribute
+                self.config_json["endpoints"][self.jsonviewer.index(eval("self.jsonviewer.parent(" * 4 + "item" + ")" * 4))]["allowed_attributes"][self.jsonviewer.index(self.jsonviewer.parent(item))]["attribute_requirements"][self.jsonviewer.index(item)]["attribute"] = new_attribute
+
+                with open(args.file, "w") as f:
+                    json.dump(self.config_json, f, indent=4)
+
+                self.jsonviewer.item(item, text=new_attribute)
+
+            confirm_button = tk.Button(holder_frame, text="Update attribute name", command=update_attribute)
+            confirm_button.pack(side=tk.RIGHT)
 
         if item in self.value_ids:
-            pass
+            self.optionsframe.config(text="Edit value for attribute " + self.jsonviewer.item(self.jsonviewer.parent(item), "text"))
 
-        self.old_selection = item
+            holder_frame = tk.Frame(self.optionsframe)
+            holder_frame.pack(side=tk.TOP)
+
+            textbox = tk.Entry(holder_frame)
+            textbox.pack(side=tk.LEFT)
+
+            def update_value():
+                new_value = textbox.get()
+                #self.config_json["endpoints"][self.jsonviewer.index(self.jsonviewer.parent(self.jsonviewer.parent(self.jsonviewer.parent(self.jsonviewer.parent(self.jsonviewer.parent(item))))))]["allowed_attributes"][self.jsonviewer.index(self.jsonviewer.parent(self.jsonviewer.parent(item)))]["attribute_requirements"][self.jsonviewer.index(self.jsonviewer.parent(item))]["value"] = new_value
+                self.config_json["endpoints"][self.jsonviewer.index(eval("self.jsonviewer.parent(" * 5 + "item" + ")" * 5))]["allowed_attributes"][self.jsonviewer.index(self.jsonviewer.parent(self.jsonviewer.parent(item)))]["attribute_requirements"][self.jsonviewer.index(self.jsonviewer.parent(item))]["value"] = new_value
+
+                with open(args.file, "w") as f:
+                    json.dump(self.config_json, f, indent=4)
+
+                self.jsonviewer.item(item, text=new_value)
+
+            confirm_button = tk.Button(holder_frame, text="Update attribute value", command=update_value)
+            confirm_button.pack(side=tk.RIGHT)
 
 
 # top level argument parser
