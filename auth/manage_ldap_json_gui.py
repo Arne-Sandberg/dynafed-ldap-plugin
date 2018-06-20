@@ -309,8 +309,84 @@ class Application(tk.PanedWindow):
             delete_checkbox = tk.Checkbutton(holder_frame, text="Delete", onvalue="d", offvalue="", variable=delete_state, command=update_permissions)
             delete_checkbox.pack()
 
+        if self.jsonviewer.item(item)["text"] == "allowed_ip_addresses":
+            # add new ip address here
+            self.optionsframe.config(text="Add new IP address for endpoint " + self.jsonviewer.item(self.jsonviewer.parent(item))["text"])
+
+            textbox = tk.Entry(self.optionsframe)
+            textbox.pack(side=tk.TOP)
+
+            read_state = tk.StringVar(value="")
+            list_state = tk.StringVar(value="")
+            write_state = tk.StringVar(value="")
+            delete_state = tk.StringVar(value="")
+
+            read_checkbox = tk.Checkbutton(self.optionsframe, text="Read", onvalue="r", offvalue="", variable=read_state)
+            read_checkbox.pack()
+
+            list_checkbox = tk.Checkbutton(self.optionsframe, text="List", onvalue="l", offvalue="", variable=list_state)
+            list_checkbox.pack()
+
+            write_checkbox = tk.Checkbutton(self.optionsframe, text="Write", onvalue="w", offvalue="", variable=write_state)
+            write_checkbox.pack()
+
+            delete_checkbox = tk.Checkbutton(self.optionsframe, text="Delete", onvalue="d", offvalue="", variable=delete_state)
+            delete_checkbox.pack()
+
+            def add_endpoint():
+                ip_address = textbox.get()
+                permissions = read_state.get() + list_state.get() + write_state.get() + delete_state.get()
+
+                new_ip_address = {
+                    "ip": ip_address,
+                    "permissions": permissions,
+                }
+
+                self.config_json["endpoints"][self.jsonviewer.index(self.jsonviewer.parent(item))]["allowed_ip_addresses"].append(new_ip_address)
+
+                with open(args.file, "w") as f:
+                    json.dump(self.config_json, f, indent=4)
+
+                ip_id = self.jsonviewer.insert(item, "end", text=ip_address)
+                permissions_id = self.jsonviewer.insert(ip_id, "end", text=permissions)
+                self.ip_ids.append(ip_id)
+                self.permissions_ids.append(permissions_id)
+
+            confirm_button = tk.Button(self.optionsframe, text="Add new IP address", command=add_endpoint)
+            confirm_button.pack()
+
         if item in self.ip_ids:
-            pass
+            self.optionsframe.config(text="Edit IP address " + self.jsonviewer.item(item, "text"))
+
+            # need to be able to edit IP address or delete
+            holder_frame = tk.Frame(self.optionsframe)
+            holder_frame.pack(side=tk.TOP)
+
+            textbox = tk.Entry(holder_frame)
+            textbox.pack(side=tk.LEFT)
+
+            def update_ip():
+                new_ip = textbox.get()
+                self.config_json["endpoints"][self.jsonviewer.index(self.jsonviewer.parent(self.jsonviewer.parent(item)))]["allowed_ip_addresses"][self.jsonviewer.index(item)]["ip"] = new_ip
+
+                with open(args.file, "w") as f:
+                    json.dump(self.config_json, f, indent=4)
+
+                self.jsonviewer.item(item, text=new_ip)
+
+            confirm_button = tk.Button(holder_frame, text="Update IP address", command=update_ip)
+            confirm_button.pack(side=tk.RIGHT)
+
+            def delete_ip():
+                del self.config_json["endpoints"][self.jsonviewer.index(self.jsonviewer.parent(self.jsonviewer.parent(item)))]["allowed_ip_addresses"][self.jsonviewer.index(item)]
+
+                with open(args.file, "w") as f:
+                    json.dump(self.config_json, f, indent=4)
+
+                self.jsonviewer.delete(item)
+
+            delete_button = tk.Button(self.optionsframe, text="Delete this IP address", command=delete_ip)
+            delete_button.pack()
 
         if item in self.allowed_attribute_set_ids:
             pass
