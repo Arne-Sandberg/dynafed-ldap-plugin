@@ -233,7 +233,8 @@ class Application(tk.PanedWindow):
         confirm_button.pack()
 
     def allowed_attributes_callback(self, event):
-        pass
+        item = self.jsonviewer.focus()
+        self.optionsframe.config(text="Add new set of allowed attributes for endpoint " + self.jsonviewer.item(self.jsonviewer.parent(item))["text"])
 
     def ip_callback(self, event):
         item = self.jsonviewer.focus()
@@ -322,10 +323,23 @@ class Application(tk.PanedWindow):
         delete_checkbox.pack()
 
     def allowed_attributes_set_callback(self, event):
-        pass
+        item = self.jsonviewer.focus()
+        self.optionsframe.config(text="Edit " + self.jsonviewer.item(item)["text"])
+
+        def delete_attribute_set():
+            del self.config_json["endpoints"][self.jsonviewer.index(self.jsonviewer.parent(self.jsonviewer.parent(item)))]["allowed_attributes"][self.jsonviewer.index(item)]
+
+            with open(args.file, "w") as f:
+                json.dump(self.config_json, f, indent=4)
+
+            self.jsonviewer.delete(item)
+
+        delete_button = tk.Button(self.optionsframe, text="Delete this attribute set", command=delete_attribute_set)
+        delete_button.pack(side=tk.TOP)
 
     def attribute_requirements_callback(self, event):
-        pass
+        item = self.jsonviewer.focus()
+        self.optionsframe.config(text="Add new attribute")
 
     def attribute_name_callback(self, event):
         item = self.jsonviewer.focus()
