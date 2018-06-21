@@ -341,6 +341,39 @@ class Application(tk.PanedWindow):
         item = self.jsonviewer.focus()
         self.optionsframe.config(text="Add new attribute")
 
+        holder_frame = tk.Frame(self.optionsframe)
+        holder_frame.pack(side=tk.TOP)
+
+        name_label = tk.Label(holder_frame)
+        name_label.pack(side=tk.LEFT)
+
+        name_textbox = tk.Entry(holder_frame)
+        name_textbox.pack()
+
+        value_label = tk.Label(holder_frame)
+        value_label.pack()
+
+        value_textbox = tk.Entry(holder_frame)
+        value_textbox.pack()
+
+        def add_attribute():
+            new_name = name_textbox.get()
+            new_value = value_textbox.get()
+            new_attribute = {
+                "attribute": new_name,
+                "value": new_value
+            }
+            self.config_json["endpoints"][self.jsonviewer.index(eval("self.jsonviewer.parent(" * 3 + "item" + ")" * 3))]["allowed_attributes"][self.jsonviewer.index(self.jsonviewer.parent(item))]["attribute_requirements"].append(new_attribute)
+
+            with open(args.file, "w") as f:
+                json.dump(self.config_json, f, indent=4)
+
+            attribute_id = self.jsonviewer.insert(item, "end", text=new_name, tags=["tree_item", "attribute_name"])
+            self.jsonviewer.insert(attribute_id, "end", text=new_value, tags=["tree_item", "attribute_value"])
+
+        confirm_button = tk.Button(holder_frame, text="Add attribute", command=add_attribute)
+        confirm_button.pack(side=tk.RIGHT)
+
     def attribute_name_callback(self, event):
         item = self.jsonviewer.focus()
         self.optionsframe.config(text="Edit attribute name")
@@ -354,7 +387,7 @@ class Application(tk.PanedWindow):
         def update_attribute():
             new_attribute = textbox.get()
             #self.config_json["endpoints"][self.jsonviewer.index(self.jsonviewer.parent(self.jsonviewer.parent(self.jsonviewer.parent(self.jsonviewer.parent(item)))))]["allowed_attributes"][self.jsonviewer.index(self.jsonviewer.parent(item))]["attribute_requirements"][self.jsonviewer.index(item)]["attribute"] = new_attribute
-            self.config_json["endpoints"][self.jsonviewer.index(eval("self.jsonviewer.parent(" * 4 + "item" + ")" * 4))]["allowed_attributes"][self.jsonviewer.index(self.jsonviewer.parent(item))]["attribute_requirements"][self.jsonviewer.index(item)]["attribute"] = new_attribute
+            self.config_json["endpoints"][self.jsonviewer.index(eval("self.jsonviewer.parent(" * 4 + "item" + ")" * 4))]["allowed_attributes"][self.jsonviewer.index(self.jsonviewer.parent(self.jsonviewer.parent(item)))]["attribute_requirements"][self.jsonviewer.index(item)]["attribute"] = new_attribute
 
             with open(args.file, "w") as f:
                 json.dump(self.config_json, f, indent=4)
@@ -365,7 +398,7 @@ class Application(tk.PanedWindow):
         confirm_button.pack(side=tk.RIGHT)
 
         def delete_attribute():
-            del self.config_json["endpoints"][self.jsonviewer.index(eval("self.jsonviewer.parent(" * 4 + "item" + ")" * 4))]["allowed_attributes"][self.jsonviewer.index(self.jsonviewer.parent(item))]["attribute_requirements"][self.jsonviewer.index(item)]
+            del self.config_json["endpoints"][self.jsonviewer.index(eval("self.jsonviewer.parent(" * 4 + "item" + ")" * 4))]["allowed_attributes"][self.jsonviewer.index(self.jsonviewer.parent(self.jsonviewer.parent(item)))]["attribute_requirements"][self.jsonviewer.index(item)]
 
             with open(args.file, "w") as f:
                 json.dump(self.config_json, f, indent=4)
@@ -388,7 +421,7 @@ class Application(tk.PanedWindow):
         def update_value():
             new_value = textbox.get()
             #self.config_json["endpoints"][self.jsonviewer.index(self.jsonviewer.parent(self.jsonviewer.parent(self.jsonviewer.parent(self.jsonviewer.parent(self.jsonviewer.parent(item))))))]["allowed_attributes"][self.jsonviewer.index(self.jsonviewer.parent(self.jsonviewer.parent(item)))]["attribute_requirements"][self.jsonviewer.index(self.jsonviewer.parent(item))]["value"] = new_value
-            self.config_json["endpoints"][self.jsonviewer.index(eval("self.jsonviewer.parent(" * 5 + "item" + ")" * 5))]["allowed_attributes"][self.jsonviewer.index(self.jsonviewer.parent(self.jsonviewer.parent(item)))]["attribute_requirements"][self.jsonviewer.index(self.jsonviewer.parent(item))]["value"] = new_value
+            self.config_json["endpoints"][self.jsonviewer.index(eval("self.jsonviewer.parent(" * 5 + "item" + ")" * 5))]["allowed_attributes"][self.jsonviewer.index(self.jsonviewer.parent(self.jsonviewer.parent(self.jsonviewer.parent(item))))]["attribute_requirements"][self.jsonviewer.index(self.jsonviewer.parent(item))]["value"] = new_value
 
             with open(args.file, "w") as f:
                 json.dump(self.config_json, f, indent=4)
