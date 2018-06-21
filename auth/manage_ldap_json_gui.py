@@ -12,13 +12,6 @@ class Application(tk.PanedWindow):
     def __init__(self, master=None):
         tk.PanedWindow.__init__(self, master)
         self.master.title("Edit JSON config")
-        self.endpoint_ids = []
-        self.propogate_permissions_ids = []
-        self.permissions_ids = []
-        self.ip_ids = []
-        self.allowed_attribute_set_ids = []
-        self.attribute_ids = []
-        self.value_ids = []
 
         with open(args.file, "r") as f:
             self.config_json = json.load(f)
@@ -29,48 +22,51 @@ class Application(tk.PanedWindow):
     def createWidgets(self):
         self.jsonviewer = ttk.Treeview(selectmode="browse")
 
-        server_id = self.jsonviewer.insert("", "end", text="Server name")
+        server_id = self.jsonviewer.insert("", "end", text="Server name", tags=["tree_item", "server_label"])
         # save id of tree item so we can find it later
-        self.server_name_id = self.jsonviewer.insert(server_id, "end", text=self.config_json["server"])
+        server_name_id = self.jsonviewer.insert(server_id, "end", text=self.config_json["server"], tags=["tree_item", "server_value"])
 
-        self.endpoints_id = self.jsonviewer.insert("", "end", text="Endpoints")
+        endpoints_id = self.jsonviewer.insert("", "end", text="Endpoints", tags=["tree_item", "endpoints"])
 
         for endpoint in self.config_json["endpoints"]:
-            endpoint_id = self.jsonviewer.insert(self.endpoints_id, "end", text=endpoint["endpoint_path"])
-            self.endpoint_ids.append(endpoint_id)
+            endpoint_id = self.jsonviewer.insert(endpoints_id, "end", text=endpoint["endpoint_path"], tags=["tree_item", "endpoint"])
 
-            propogate_permissions_id = self.jsonviewer.insert(endpoint_id, "end", text="propogate_permissions")
-            propogate_permissions_value_id = self.jsonviewer.insert(propogate_permissions_id, "end", text=str(endpoint["propogate_permissions"]))
-            self.propogate_permissions_ids.append(propogate_permissions_value_id)
+            propogate_permissions_id = self.jsonviewer.insert(endpoint_id, "end", text="propogate_permissions", tags=["tree_item", "propogate_permissions_label"])
+            propogate_permissions_value_id = self.jsonviewer.insert(propogate_permissions_id, "end", text=str(endpoint["propogate_permissions"]), tags=["tree_item", "propogate_permissions_value"])
 
-            allowed_ip_addresses_id = self.jsonviewer.insert(endpoint_id, "end", text="allowed_ip_addresses")
-
-            allowed_attributes_id = self.jsonviewer.insert(endpoint_id, "end", text="allowed_attributes")
+            allowed_ip_addresses_id = self.jsonviewer.insert(endpoint_id, "end", text="allowed_ip_addresses", tags=["tree_item", "allowed_ip_addresses"])
+            allowed_attributes_id = self.jsonviewer.insert(endpoint_id, "end", text="allowed_attributes", tags=["tree_item", "allowed_attributes"])
 
             for ip in endpoint["allowed_ip_addresses"]:
-                ip_id = self.jsonviewer.insert(allowed_ip_addresses_id, "end", text=ip["ip"])
-                permissions_id = self.jsonviewer.insert(ip_id, "end", text=ip["permissions"])
-                self.ip_ids.append(ip_id)
-                self.permissions_ids.append(permissions_id)
+                ip_id = self.jsonviewer.insert(allowed_ip_addresses_id, "end", text=ip["ip"], tags=["tree_item", "ip"])
+                permissions_id = self.jsonviewer.insert(ip_id, "end", text=ip["permissions"], tags=["tree_item", "ip_permissions"])
 
             for index, attribute_set in enumerate(endpoint["allowed_attributes"]):
-                allowed_attribute_set_id = self.jsonviewer.insert(allowed_attributes_id, "end", text="Allowed attribute set " + str(index + 1))
-                self.allowed_attribute_set_ids.append(allowed_attribute_set_id)
+                allowed_attribute_set_id = self.jsonviewer.insert(allowed_attributes_id, "end", text="Allowed attribute set " + str(index + 1), tags=["tree_item", "allowed_attributes_set"])
 
-                attribute_requirements_id = self.jsonviewer.insert(allowed_attribute_set_id, "end", text="attribute_requirements")
+                attribute_requirements_id = self.jsonviewer.insert(allowed_attribute_set_id, "end", text="attribute_requirements", tags=["tree_item", "attribute_requirements"])
                 for attribute in attribute_set["attribute_requirements"]:
-                    attribute_id = self.jsonviewer.insert(attribute_requirements_id, "end", text=attribute["attribute"])
-                    value_id = self.jsonviewer.insert(attribute_id, "end", text=attribute["value"])
+                    attribute_id = self.jsonviewer.insert(attribute_requirements_id, "end", text=attribute["attribute"], tags=["tree_item", "attribute_name"])
+                    value_id = self.jsonviewer.insert(attribute_id, "end", text=attribute["value"], tags=["tree_item", "attribute_value"])
 
-                    self.attribute_ids.append(attribute_id)
-                    self.value_ids.append(value_id)
-
-                permissions_label_id = self.jsonviewer.insert(allowed_attribute_set_id, "end", text="permissions")
-                permissions_id = self.jsonviewer.insert(permissions_label_id, "end", text=attribute_set["permissions"])
-                self.permissions_ids.append(permissions_id)
+                permissions_label_id = self.jsonviewer.insert(allowed_attribute_set_id, "end", text="permissions", tags=["tree_item", "attributes_permissions_label"])
+                permissions_id = self.jsonviewer.insert(permissions_label_id, "end", text=attribute_set["permissions"], tags=["tree_item", "attributes_permissions_value"])
 
         self.add(self.jsonviewer)
-        self.jsonviewer.bind("<<TreeviewSelect>>", self.selectionChange)
+        self.jsonviewer.tag_bind("tree_item", "<<TreeviewSelect>>", self.clear_edit_frame)
+        self.jsonviewer.tag_bind("server_value", "<<TreeviewSelect>>", self.server_value_callback)
+        self.jsonviewer.tag_bind("endpoints", "<<TreeviewSelect>>", self.endpoints_callback)
+        self.jsonviewer.tag_bind("endpoint", "<<TreeviewSelect>>", self.endpoint_callback)
+        self.jsonviewer.tag_bind("propogate_permissions_value", "<<TreeviewSelect>>", self.propogate_permissions_value_callback)
+        self.jsonviewer.tag_bind("allowed_ip_addresses", "<<TreeviewSelect>>", self.allowed_ip_addresses_callback)
+        self.jsonviewer.tag_bind("allowed_attributes", "<<TreeviewSelect>>", self.allowed_attributes_callback)
+        self.jsonviewer.tag_bind("ip", "<<TreeviewSelect>>", self.ip_callback)
+        self.jsonviewer.tag_bind("ip_permissions", "<<TreeviewSelect>>", self.ip_permissions_callback)
+        self.jsonviewer.tag_bind("allowed_attributes_set", "<<TreeviewSelect>>", self.allowed_attributes_set_callback)
+        self.jsonviewer.tag_bind("attribute_requirements", "<<TreeviewSelect>>", self.attribute_requirements_callback)
+        self.jsonviewer.tag_bind("attribute_name", "<<TreeviewSelect>>", self.attribute_name_callback)
+        self.jsonviewer.tag_bind("attribute_value", "<<TreeviewSelect>>", self.attribute_value_callback)
+        self.jsonviewer.tag_bind("attributes_permissions_value", "<<TreeviewSelect>>", self.attributes_permissions_value_callback)
 
         self.editframe = tk.Frame(self)
         self.add(self.editframe)
@@ -79,300 +75,355 @@ class Application(tk.PanedWindow):
         self.optionsframe.pack(side=tk.TOP, expand=True, fill=tk.BOTH)
 
         self.quitButton = tk.Button(self.editframe, text='Quit', command=self.quit)
-        self.quitButton.pack(side=tk.BOTTOM)
+        self.quitButton.pack()
 
-    def selectionChange(self, event):
-        item = self.jsonviewer.focus()
-
-        # destroy old fields
+    # this is called before the other callbacks to clear the previous interface
+    def clear_edit_frame(self, event):
         for widget in self.optionsframe.winfo_children():
             widget.destroy()
 
-        # decide which editing gui to display
-        if item == self.server_name_id:
-            self.optionsframe.config(text="Edit server name")
+    def server_value_callback(self, event):
+        item = self.jsonviewer.focus()
+        self.optionsframe.config(text="Edit server name")
 
-            holder_frame = tk.Frame(self.optionsframe)
-            holder_frame.pack()
+        holder_frame = tk.Frame(self.optionsframe)
+        holder_frame.pack()
 
-            textbox = tk.Entry(holder_frame)
-            textbox.pack(side=tk.LEFT)
+        textbox = tk.Entry(holder_frame)
+        textbox.pack(side=tk.LEFT)
 
-            def update_servername():
-                server = textbox.get()
-                self.config_json["server"] = server
+        def update_servername():
+            server = textbox.get()
+            self.config_json["server"] = server
 
-                with open(args.file, "w") as f:
-                    json.dump(self.config_json, f, indent=4)
+            with open(args.file, "w") as f:
+                json.dump(self.config_json, f, indent=4)
 
-                self.jsonviewer.item(item, text=server)
+            self.jsonviewer.item(item, text=server)
 
-            confirm_button = tk.Button(holder_frame, text="Update server name", command=update_servername)
-            confirm_button.pack(side=tk.RIGHT)
+        confirm_button = tk.Button(holder_frame, text="Update server name", command=update_servername)
+        confirm_button.pack(side=tk.RIGHT)
 
-        if item == self.endpoints_id:
-            # add new endpoint here
-            self.optionsframe.config(text="Add new endpoint")
+    def endpoints_callback(self, event):
+        item = self.jsonviewer.focus()
+        self.optionsframe.config(text="Add new endpoint")
 
-            holder_frame = tk.Frame(self.optionsframe)
-            holder_frame.pack()
+        holder_frame = tk.Frame(self.optionsframe)
+        holder_frame.pack()
 
-            textbox = tk.Entry(holder_frame)
-            textbox.pack(side=tk.LEFT)
+        textbox = tk.Entry(holder_frame)
+        textbox.pack(side=tk.LEFT)
 
-            def add_endpoint():
-                endpoint_path = textbox.get()
-                new_endpoint = {
-                    "endpoint_path": endpoint_path,
-                    "allowed_attributes": [],
-                    "allowed_ip_addresses": [],
-                    "propogate_permissions": True
-                }
-                self.config_json["endpoints"].append(new_endpoint)
+        def add_endpoint():
+            endpoint_path = textbox.get()
+            new_endpoint = {
+                "endpoint_path": endpoint_path,
+                "allowed_attributes": [],
+                "allowed_ip_addresses": [],
+                "propogate_permissions": True
+            }
+            self.config_json["endpoints"].append(new_endpoint)
 
-                with open(args.file, "w") as f:
-                    json.dump(self.config_json, f, indent=4)
+            with open(args.file, "w") as f:
+                json.dump(self.config_json, f, indent=4)
 
-                endpoint_id = self.jsonviewer.insert(self.endpoints_id, "end", text=endpoint_path)
-                self.endpoint_ids.append(endpoint_id)
+            endpoint_id = self.jsonviewer.insert(item, "end", text=endpoint_path)
+            self.endpoint_ids.append(endpoint_id)
 
-            confirm_button = tk.Button(holder_frame, text="Add new endpoint", command=add_endpoint)
-            confirm_button.pack(side=tk.RIGHT)
+        confirm_button = tk.Button(holder_frame, text="Add new endpoint", command=add_endpoint)
+        confirm_button.pack(side=tk.RIGHT)
 
-        if item in self.endpoint_ids:
-            self.optionsframe.config(text="Edit " + self.jsonviewer.item(item, "text"))
+    def endpoint_callback(self, event):
+        item = self.jsonviewer.focus()
+        self.optionsframe.config(text="Edit " + self.jsonviewer.item(item, "text"))
 
-            # need to be able to edit endpoint name, delete endpoint
-            holder_frame = tk.Frame(self.optionsframe)
-            holder_frame.pack(side=tk.TOP)
+        # need to be able to edit endpoint name, delete endpoint
+        holder_frame = tk.Frame(self.optionsframe)
+        holder_frame.pack(side=tk.TOP)
 
-            textbox = tk.Entry(holder_frame)
-            textbox.pack(side=tk.LEFT)
+        textbox = tk.Entry(holder_frame)
+        textbox.pack(side=tk.LEFT)
 
-            def update_path():
-                new_path = textbox.get()
-                self.config_json["endpoints"][self.jsonviewer.index(item)]["endpoint_path"] = new_path
+        def update_path():
+            new_path = textbox.get()
+            self.config_json["endpoints"][self.jsonviewer.index(item)]["endpoint_path"] = new_path
 
-                with open(args.file, "w") as f:
-                    json.dump(self.config_json, f, indent=4)
+            with open(args.file, "w") as f:
+                json.dump(self.config_json, f, indent=4)
 
-                self.jsonviewer.item(item, text=new_path)
+            self.jsonviewer.item(item, text=new_path)
 
-            confirm_button = tk.Button(holder_frame, text="Update endpoint path", command=update_path)
-            confirm_button.pack(side=tk.RIGHT)
+        confirm_button = tk.Button(holder_frame, text="Update endpoint path", command=update_path)
+        confirm_button.pack(side=tk.RIGHT)
 
-            def delete_endpoint():
-                del self.config_json["endpoints"][self.jsonviewer.index(item)]
+        def delete_endpoint():
+            del self.config_json["endpoints"][self.jsonviewer.index(item)]
 
-                with open(args.file, "w") as f:
-                    json.dump(self.config_json, f, indent=4)
+            with open(args.file, "w") as f:
+                json.dump(self.config_json, f, indent=4)
 
-                self.jsonviewer.delete(item)
+            self.jsonviewer.delete(item)
 
-            delete_button = tk.Button(self.optionsframe, text="Delete this endpoint", command=delete_endpoint)
-            delete_button.pack()
+        delete_button = tk.Button(self.optionsframe, text="Delete this endpoint", command=delete_endpoint)
+        delete_button.pack()
 
-        if item in self.propogate_permissions_ids:
-            self.optionsframe.config(text="Edit propogate_permissions")
+    def propogate_permissions_value_callback(self, event):
+        item = self.jsonviewer.focus()
+        self.optionsframe.config(text="Edit propogate_permissions")
 
-            endpoint = self.jsonviewer.parent(self.jsonviewer.parent(item))
+        endpoint = self.jsonviewer.parent(self.jsonviewer.parent(item))
 
-            state = tk.BooleanVar(value=self.config_json["endpoints"][self.jsonviewer.index(endpoint)]["propogate_permissions"])
+        state = tk.BooleanVar(value=self.config_json["endpoints"][self.jsonviewer.index(endpoint)]["propogate_permissions"])
 
-            def update_propogate_permissions():
-                self.config_json["endpoints"][self.jsonviewer.index(endpoint)]["propogate_permissions"] = state.get()
+        def update_propogate_permissions():
+            self.config_json["endpoints"][self.jsonviewer.index(endpoint)]["propogate_permissions"] = state.get()
 
-                with open(args.file, "w") as f:
-                    json.dump(self.config_json, f, indent=4)
+            with open(args.file, "w") as f:
+                json.dump(self.config_json, f, indent=4)
 
-                self.jsonviewer.item(item, text=str(state.get()))
+            self.jsonviewer.item(item, text=str(state.get()))
 
-            checkbox = tk.Checkbutton(self.optionsframe, text="propogate_permissions", onvalue=True, offvalue=False, variable=state, command=update_propogate_permissions)
-            checkbox.pack()
+        checkbox = tk.Checkbutton(self.optionsframe, text="propogate_permissions", onvalue=True, offvalue=False, variable=state, command=update_propogate_permissions)
+        checkbox.pack()
 
-        if item in self.permissions_ids:
-            self.optionsframe.config(text="Edit permissions")
+    def allowed_ip_addresses_callback(self, event):
+        item = self.jsonviewer.focus()
+        self.optionsframe.config(text="Add new IP address for endpoint " + self.jsonviewer.item(self.jsonviewer.parent(item))["text"])
 
-            holder_frame = tk.Frame(self.optionsframe)
-            holder_frame.pack(side=tk.TOP)
+        textbox = tk.Entry(self.optionsframe)
+        textbox.pack(side=tk.TOP)
 
-            permissions = self.jsonviewer.item(item)["text"]
+        read_state = tk.StringVar(value="")
+        list_state = tk.StringVar(value="")
+        write_state = tk.StringVar(value="")
+        delete_state = tk.StringVar(value="")
 
-            if "r" in permissions:
-                read_state = tk.StringVar(value="r")
-            else:
-                read_state = tk.StringVar(value="")
+        read_checkbox = tk.Checkbutton(self.optionsframe, text="Read", onvalue="r", offvalue="", variable=read_state)
+        read_checkbox.pack()
 
-            if "l" in permissions:
-                list_state = tk.StringVar(value="l")
-            else:
-                list_state = tk.StringVar(value="")
+        list_checkbox = tk.Checkbutton(self.optionsframe, text="List", onvalue="l", offvalue="", variable=list_state)
+        list_checkbox.pack()
 
-            if "w" in permissions:
-                write_state = tk.StringVar(value="w")
-            else:
-                write_state = tk.StringVar(value="")
+        write_checkbox = tk.Checkbutton(self.optionsframe, text="Write", onvalue="w", offvalue="", variable=write_state)
+        write_checkbox.pack()
 
-            if "d" in permissions:
-                delete_state = tk.StringVar(value="d")
-            else:
-                delete_state = tk.StringVar(value="")
+        delete_checkbox = tk.Checkbutton(self.optionsframe, text="Delete", onvalue="d", offvalue="", variable=delete_state)
+        delete_checkbox.pack()
 
-            def update_permissions():
-                curr_permissions = read_state.get() + list_state.get() + write_state.get() + delete_state.get()
-                # need to check if ip permissions or attribute permissions
-                if self.jsonviewer.parent(item) in self.ip_ids:
-                    endpoint = self.jsonviewer.parent(self.jsonviewer.parent(self.jsonviewer.parent(item)))
-                    self.config_json["endpoints"][self.jsonviewer.index(endpoint)]["allowed_ip_addresses"][self.jsonviewer.index(self.jsonviewer.parent(item))]["permissions"] = curr_permissions
-                else:
-                    endpoint = self.jsonviewer.parent(self.jsonviewer.parent(self.jsonviewer.parent(self.jsonviewer.parent(item))))
-                    self.config_json["endpoints"][self.jsonviewer.index(endpoint)]["allowed_attributes"][self.jsonviewer.index(self.jsonviewer.parent(self.jsonviewer.parent(item)))]["permissions"] = curr_permissions
+        def add_ip():
+            ip_address = textbox.get()
+            permissions = read_state.get() + list_state.get() + write_state.get() + delete_state.get()
 
-                with open(args.file, "w") as f:
-                    json.dump(self.config_json, f, indent=4)
+            new_ip_address = {
+                "ip": ip_address,
+                "permissions": permissions,
+            }
 
-                self.jsonviewer.item(item, text=curr_permissions)
+            self.config_json["endpoints"][self.jsonviewer.index(self.jsonviewer.parent(item))]["allowed_ip_addresses"].append(new_ip_address)
 
-            read_checkbox = tk.Checkbutton(holder_frame, text="Read", onvalue="r", offvalue="", variable=read_state, command=update_permissions)
-            read_checkbox.pack()
+            with open(args.file, "w") as f:
+                json.dump(self.config_json, f, indent=4)
 
-            list_checkbox = tk.Checkbutton(holder_frame, text="List", onvalue="l", offvalue="", variable=list_state, command=update_permissions)
-            list_checkbox.pack()
+            ip_id = self.jsonviewer.insert(item, "end", text=ip_address)
+            permissions_id = self.jsonviewer.insert(ip_id, "end", text=permissions)
+            self.ip_ids.append(ip_id)
+            self.permissions_ids.append(permissions_id)
 
-            write_checkbox = tk.Checkbutton(holder_frame, text="Write", onvalue="w", offvalue="", variable=write_state, command=update_permissions)
-            write_checkbox.pack()
+        confirm_button = tk.Button(self.optionsframe, text="Add new IP address", command=add_ip)
+        confirm_button.pack()
 
-            delete_checkbox = tk.Checkbutton(holder_frame, text="Delete", onvalue="d", offvalue="", variable=delete_state, command=update_permissions)
-            delete_checkbox.pack()
+    def allowed_attributes_callback(self, event):
+        pass
 
-        if self.jsonviewer.item(item)["text"] == "allowed_ip_addresses":
-            # add new ip address here
-            self.optionsframe.config(text="Add new IP address for endpoint " + self.jsonviewer.item(self.jsonviewer.parent(item))["text"])
+    def ip_callback(self, event):
+        item = self.jsonviewer.focus()
+        self.optionsframe.config(text="Edit IP address " + self.jsonviewer.item(item, "text"))
 
-            textbox = tk.Entry(self.optionsframe)
-            textbox.pack(side=tk.TOP)
+        # need to be able to edit IP address or delete
+        holder_frame = tk.Frame(self.optionsframe)
+        holder_frame.pack(side=tk.TOP)
 
+        textbox = tk.Entry(holder_frame)
+        textbox.pack(side=tk.LEFT)
+
+        def update_ip():
+            new_ip = textbox.get()
+            self.config_json["endpoints"][self.jsonviewer.index(self.jsonviewer.parent(self.jsonviewer.parent(item)))]["allowed_ip_addresses"][self.jsonviewer.index(item)]["ip"] = new_ip
+
+            with open(args.file, "w") as f:
+                json.dump(self.config_json, f, indent=4)
+
+            self.jsonviewer.item(item, text=new_ip)
+
+        confirm_button = tk.Button(holder_frame, text="Update IP address", command=update_ip)
+        confirm_button.pack(side=tk.RIGHT)
+
+        def delete_ip():
+            del self.config_json["endpoints"][self.jsonviewer.index(self.jsonviewer.parent(self.jsonviewer.parent(item)))]["allowed_ip_addresses"][self.jsonviewer.index(item)]
+
+            with open(args.file, "w") as f:
+                json.dump(self.config_json, f, indent=4)
+
+            self.jsonviewer.delete(item)
+
+        delete_button = tk.Button(self.optionsframe, text="Delete this IP address", command=delete_ip)
+        delete_button.pack()
+
+    def ip_permissions_callback(self, event):
+        item = self.jsonviewer.focus()
+        self.optionsframe.config(text="Edit permissions")
+
+        holder_frame = tk.Frame(self.optionsframe)
+        holder_frame.pack(side=tk.TOP)
+
+        permissions = self.jsonviewer.item(item)["text"]
+
+        if "r" in permissions:
+            read_state = tk.StringVar(value="r")
+        else:
             read_state = tk.StringVar(value="")
+
+        if "l" in permissions:
+            list_state = tk.StringVar(value="l")
+        else:
             list_state = tk.StringVar(value="")
+
+        if "w" in permissions:
+            write_state = tk.StringVar(value="w")
+        else:
             write_state = tk.StringVar(value="")
+
+        if "d" in permissions:
+            delete_state = tk.StringVar(value="d")
+        else:
             delete_state = tk.StringVar(value="")
 
-            read_checkbox = tk.Checkbutton(self.optionsframe, text="Read", onvalue="r", offvalue="", variable=read_state)
-            read_checkbox.pack()
+        def update_permissions():
+            curr_permissions = read_state.get() + list_state.get() + write_state.get() + delete_state.get()
+            # need to check if ip permissions or attribute permissions
+            endpoint = self.jsonviewer.parent(self.jsonviewer.parent(self.jsonviewer.parent(item)))
+            self.config_json["endpoints"][self.jsonviewer.index(endpoint)]["allowed_ip_addresses"][self.jsonviewer.index(self.jsonviewer.parent(item))]["permissions"] = curr_permissions
 
-            list_checkbox = tk.Checkbutton(self.optionsframe, text="List", onvalue="l", offvalue="", variable=list_state)
-            list_checkbox.pack()
+            with open(args.file, "w") as f:
+                json.dump(self.config_json, f, indent=4)
 
-            write_checkbox = tk.Checkbutton(self.optionsframe, text="Write", onvalue="w", offvalue="", variable=write_state)
-            write_checkbox.pack()
+            self.jsonviewer.item(item, text=curr_permissions)
 
-            delete_checkbox = tk.Checkbutton(self.optionsframe, text="Delete", onvalue="d", offvalue="", variable=delete_state)
-            delete_checkbox.pack()
+        read_checkbox = tk.Checkbutton(holder_frame, text="Read", onvalue="r", offvalue="", variable=read_state, command=update_permissions)
+        read_checkbox.pack()
 
-            def add_endpoint():
-                ip_address = textbox.get()
-                permissions = read_state.get() + list_state.get() + write_state.get() + delete_state.get()
+        list_checkbox = tk.Checkbutton(holder_frame, text="List", onvalue="l", offvalue="", variable=list_state, command=update_permissions)
+        list_checkbox.pack()
 
-                new_ip_address = {
-                    "ip": ip_address,
-                    "permissions": permissions,
-                }
+        write_checkbox = tk.Checkbutton(holder_frame, text="Write", onvalue="w", offvalue="", variable=write_state, command=update_permissions)
+        write_checkbox.pack()
 
-                self.config_json["endpoints"][self.jsonviewer.index(self.jsonviewer.parent(item))]["allowed_ip_addresses"].append(new_ip_address)
+        delete_checkbox = tk.Checkbutton(holder_frame, text="Delete", onvalue="d", offvalue="", variable=delete_state, command=update_permissions)
+        delete_checkbox.pack()
 
-                with open(args.file, "w") as f:
-                    json.dump(self.config_json, f, indent=4)
+    def allowed_attributes_set_callback(self, event):
+        pass
 
-                ip_id = self.jsonviewer.insert(item, "end", text=ip_address)
-                permissions_id = self.jsonviewer.insert(ip_id, "end", text=permissions)
-                self.ip_ids.append(ip_id)
-                self.permissions_ids.append(permissions_id)
+    def attribute_requirements_callback(self, event):
+        pass
 
-            confirm_button = tk.Button(self.optionsframe, text="Add new IP address", command=add_endpoint)
-            confirm_button.pack()
+    def attribute_name_callback(self, event):
+        item = self.jsonviewer.focus()
+        self.optionsframe.config(text="Edit attribute name")
 
-        if item in self.ip_ids:
-            self.optionsframe.config(text="Edit IP address " + self.jsonviewer.item(item, "text"))
+        holder_frame = tk.Frame(self.optionsframe)
+        holder_frame.pack(side=tk.TOP)
 
-            # need to be able to edit IP address or delete
-            holder_frame = tk.Frame(self.optionsframe)
-            holder_frame.pack(side=tk.TOP)
+        textbox = tk.Entry(holder_frame)
+        textbox.pack(side=tk.LEFT)
 
-            textbox = tk.Entry(holder_frame)
-            textbox.pack(side=tk.LEFT)
+        def update_attribute():
+            new_attribute = textbox.get()
+            #self.config_json["endpoints"][self.jsonviewer.index(self.jsonviewer.parent(self.jsonviewer.parent(self.jsonviewer.parent(self.jsonviewer.parent(item)))))]["allowed_attributes"][self.jsonviewer.index(self.jsonviewer.parent(item))]["attribute_requirements"][self.jsonviewer.index(item)]["attribute"] = new_attribute
+            self.config_json["endpoints"][self.jsonviewer.index(eval("self.jsonviewer.parent(" * 4 + "item" + ")" * 4))]["allowed_attributes"][self.jsonviewer.index(self.jsonviewer.parent(item))]["attribute_requirements"][self.jsonviewer.index(item)]["attribute"] = new_attribute
 
-            def update_ip():
-                new_ip = textbox.get()
-                self.config_json["endpoints"][self.jsonviewer.index(self.jsonviewer.parent(self.jsonviewer.parent(item)))]["allowed_ip_addresses"][self.jsonviewer.index(item)]["ip"] = new_ip
+            with open(args.file, "w") as f:
+                json.dump(self.config_json, f, indent=4)
 
-                with open(args.file, "w") as f:
-                    json.dump(self.config_json, f, indent=4)
+            self.jsonviewer.item(item, text=new_attribute)
 
-                self.jsonviewer.item(item, text=new_ip)
+        confirm_button = tk.Button(holder_frame, text="Update attribute name", command=update_attribute)
+        confirm_button.pack(side=tk.RIGHT)
 
-            confirm_button = tk.Button(holder_frame, text="Update IP address", command=update_ip)
-            confirm_button.pack(side=tk.RIGHT)
+    def attribute_value_callback(self, event):
+        item = self.jsonviewer.focus()
+        self.optionsframe.config(text="Edit value for attribute " + self.jsonviewer.item(self.jsonviewer.parent(item), "text"))
 
-            def delete_ip():
-                del self.config_json["endpoints"][self.jsonviewer.index(self.jsonviewer.parent(self.jsonviewer.parent(item)))]["allowed_ip_addresses"][self.jsonviewer.index(item)]
+        holder_frame = tk.Frame(self.optionsframe)
+        holder_frame.pack(side=tk.TOP)
 
-                with open(args.file, "w") as f:
-                    json.dump(self.config_json, f, indent=4)
+        textbox = tk.Entry(holder_frame)
+        textbox.pack(side=tk.LEFT)
 
-                self.jsonviewer.delete(item)
+        def update_value():
+            new_value = textbox.get()
+            #self.config_json["endpoints"][self.jsonviewer.index(self.jsonviewer.parent(self.jsonviewer.parent(self.jsonviewer.parent(self.jsonviewer.parent(self.jsonviewer.parent(item))))))]["allowed_attributes"][self.jsonviewer.index(self.jsonviewer.parent(self.jsonviewer.parent(item)))]["attribute_requirements"][self.jsonviewer.index(self.jsonviewer.parent(item))]["value"] = new_value
+            self.config_json["endpoints"][self.jsonviewer.index(eval("self.jsonviewer.parent(" * 5 + "item" + ")" * 5))]["allowed_attributes"][self.jsonviewer.index(self.jsonviewer.parent(self.jsonviewer.parent(item)))]["attribute_requirements"][self.jsonviewer.index(self.jsonviewer.parent(item))]["value"] = new_value
 
-            delete_button = tk.Button(self.optionsframe, text="Delete this IP address", command=delete_ip)
-            delete_button.pack()
+            with open(args.file, "w") as f:
+                json.dump(self.config_json, f, indent=4)
 
-        if self.jsonviewer.item(item)["text"] == "allowed_attributes":
-            pass
+            self.jsonviewer.item(item, text=new_value)
 
-        if item in self.allowed_attribute_set_ids:
-            pass
+        confirm_button = tk.Button(holder_frame, text="Update attribute value", command=update_value)
+        confirm_button.pack(side=tk.RIGHT)
 
-        if item in self.attribute_ids:
-            self.optionsframe.config(text="Edit attribute name")
+    def attributes_permissions_value_callback(self, event):
+        item = self.jsonviewer.focus()
+        self.optionsframe.config(text="Edit permissions")
 
-            holder_frame = tk.Frame(self.optionsframe)
-            holder_frame.pack(side=tk.TOP)
+        holder_frame = tk.Frame(self.optionsframe)
+        holder_frame.pack(side=tk.TOP)
 
-            textbox = tk.Entry(holder_frame)
-            textbox.pack(side=tk.LEFT)
+        permissions = self.jsonviewer.item(item)["text"]
 
-            def update_attribute():
-                new_attribute = textbox.get()
-                #self.config_json["endpoints"][self.jsonviewer.index(self.jsonviewer.parent(self.jsonviewer.parent(self.jsonviewer.parent(self.jsonviewer.parent(item)))))]["allowed_attributes"][self.jsonviewer.index(self.jsonviewer.parent(item))]["attribute_requirements"][self.jsonviewer.index(item)]["attribute"] = new_attribute
-                self.config_json["endpoints"][self.jsonviewer.index(eval("self.jsonviewer.parent(" * 4 + "item" + ")" * 4))]["allowed_attributes"][self.jsonviewer.index(self.jsonviewer.parent(item))]["attribute_requirements"][self.jsonviewer.index(item)]["attribute"] = new_attribute
+        if "r" in permissions:
+            read_state = tk.StringVar(value="r")
+        else:
+            read_state = tk.StringVar(value="")
 
-                with open(args.file, "w") as f:
-                    json.dump(self.config_json, f, indent=4)
+        if "l" in permissions:
+            list_state = tk.StringVar(value="l")
+        else:
+            list_state = tk.StringVar(value="")
 
-                self.jsonviewer.item(item, text=new_attribute)
+        if "w" in permissions:
+            write_state = tk.StringVar(value="w")
+        else:
+            write_state = tk.StringVar(value="")
 
-            confirm_button = tk.Button(holder_frame, text="Update attribute name", command=update_attribute)
-            confirm_button.pack(side=tk.RIGHT)
+        if "d" in permissions:
+            delete_state = tk.StringVar(value="d")
+        else:
+            delete_state = tk.StringVar(value="")
 
-        if item in self.value_ids:
-            self.optionsframe.config(text="Edit value for attribute " + self.jsonviewer.item(self.jsonviewer.parent(item), "text"))
+        def update_permissions():
+            curr_permissions = read_state.get() + list_state.get() + write_state.get() + delete_state.get()
+            # need to check if ip permissions or attribute permissions
+            endpoint = self.jsonviewer.parent(self.jsonviewer.parent(self.jsonviewer.parent(self.jsonviewer.parent(item))))
+            self.config_json["endpoints"][self.jsonviewer.index(endpoint)]["allowed_attributes"][self.jsonviewer.index(self.jsonviewer.parent(self.jsonviewer.parent(item)))]["permissions"] = curr_permissions
 
-            holder_frame = tk.Frame(self.optionsframe)
-            holder_frame.pack(side=tk.TOP)
+            with open(args.file, "w") as f:
+                json.dump(self.config_json, f, indent=4)
 
-            textbox = tk.Entry(holder_frame)
-            textbox.pack(side=tk.LEFT)
+            self.jsonviewer.item(item, text=curr_permissions)
 
-            def update_value():
-                new_value = textbox.get()
-                #self.config_json["endpoints"][self.jsonviewer.index(self.jsonviewer.parent(self.jsonviewer.parent(self.jsonviewer.parent(self.jsonviewer.parent(self.jsonviewer.parent(item))))))]["allowed_attributes"][self.jsonviewer.index(self.jsonviewer.parent(self.jsonviewer.parent(item)))]["attribute_requirements"][self.jsonviewer.index(self.jsonviewer.parent(item))]["value"] = new_value
-                self.config_json["endpoints"][self.jsonviewer.index(eval("self.jsonviewer.parent(" * 5 + "item" + ")" * 5))]["allowed_attributes"][self.jsonviewer.index(self.jsonviewer.parent(self.jsonviewer.parent(item)))]["attribute_requirements"][self.jsonviewer.index(self.jsonviewer.parent(item))]["value"] = new_value
+        read_checkbox = tk.Checkbutton(holder_frame, text="Read", onvalue="r", offvalue="", variable=read_state, command=update_permissions)
+        read_checkbox.pack()
 
-                with open(args.file, "w") as f:
-                    json.dump(self.config_json, f, indent=4)
+        list_checkbox = tk.Checkbutton(holder_frame, text="List", onvalue="l", offvalue="", variable=list_state, command=update_permissions)
+        list_checkbox.pack()
 
-                self.jsonviewer.item(item, text=new_value)
+        write_checkbox = tk.Checkbutton(holder_frame, text="Write", onvalue="w", offvalue="", variable=write_state, command=update_permissions)
+        write_checkbox.pack()
 
-            confirm_button = tk.Button(holder_frame, text="Update attribute value", command=update_value)
-            confirm_button.pack(side=tk.RIGHT)
+        delete_checkbox = tk.Checkbutton(holder_frame, text="Delete", onvalue="d", offvalue="", variable=delete_state, command=update_permissions)
+        delete_checkbox.pack()
 
 
 # top level argument parser
