@@ -364,6 +364,17 @@ class Application(tk.PanedWindow):
         confirm_button = tk.Button(holder_frame, text="Update attribute name", command=update_attribute)
         confirm_button.pack(side=tk.RIGHT)
 
+        def delete_attribute():
+            del self.config_json["endpoints"][self.jsonviewer.index(eval("self.jsonviewer.parent(" * 4 + "item" + ")" * 4))]["allowed_attributes"][self.jsonviewer.index(self.jsonviewer.parent(item))]["attribute_requirements"][self.jsonviewer.index(item)]
+
+            with open(args.file, "w") as f:
+                json.dump(self.config_json, f, indent=4)
+
+            self.jsonviewer.delete(item)
+
+        delete_button = tk.Button(self.optionsframe, text="Delete this attribute", command=delete_attribute)
+        delete_button.pack()
+
     def attribute_value_callback(self, event):
         item = self.jsonviewer.focus()
         self.optionsframe.config(text="Edit value for attribute " + self.jsonviewer.item(self.jsonviewer.parent(item), "text"))
