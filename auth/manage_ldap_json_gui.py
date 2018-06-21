@@ -236,6 +236,104 @@ class Application(tk.PanedWindow):
         item = self.jsonviewer.focus()
         self.optionsframe.config(text="Add new set of allowed attributes for endpoint " + self.jsonviewer.item(self.jsonviewer.parent(item))["text"])
 
+        attributes_frame = tk.LabelFrame(self.optionsframe, text="attribute_requirements")
+        attributes_frame.pack(side=tk.TOP)
+
+        def add_attribute_fields():
+            holder_frame = tk.Frame(attributes_frame)
+            holder_frame.pack(side=tk.TOP)
+
+            name_label = tk.Label(holder_frame, text="Attribute name")
+            name_label.pack(side=tk.LEFT)
+
+            name_textbox = tk.Entry(holder_frame, name="attribute_name")
+            name_textbox.pack(side=tk.LEFT)
+
+            value_label = tk.Label(holder_frame, text="Attribute value")
+            value_label.pack(side=tk.LEFT)
+
+            value_textbox = tk.Entry(holder_frame, name="attribute_value")
+            value_textbox.pack(side=tk.LEFT)
+
+            def remove_attribute():
+                value_textbox.destroy()
+                value_label.destroy()
+                name_textbox.destroy()
+                name_label.destroy()
+                remove_button.destroy()
+                holder_frame.destroy()
+
+            remove_button = tk.Button(holder_frame, text="X", command=remove_attribute)
+            remove_button.pack(side=tk.RIGHT)
+
+        add_attribute_fields()
+
+        add_attribute_button = tk.Button(attributes_frame, text="Add attribute", command=add_attribute_fields)
+        add_attribute_button.pack(side=tk.BOTTOM)
+
+        permissions_frame = tk.LabelFrame(self.optionsframe, text="permissions")
+        permissions_frame.pack()
+
+        read_state = tk.StringVar(value="")
+        list_state = tk.StringVar(value="")
+        write_state = tk.StringVar(value="")
+        delete_state = tk.StringVar(value="")
+
+        read_checkbox = tk.Checkbutton(permissions_frame, text="Read", onvalue="r", offvalue="", variable=read_state)
+        read_checkbox.pack(side=tk.LEFT)
+
+        list_checkbox = tk.Checkbutton(permissions_frame, text="List", onvalue="l", offvalue="", variable=list_state)
+        list_checkbox.pack(side=tk.LEFT)
+
+        write_checkbox = tk.Checkbutton(permissions_frame, text="Write", onvalue="w", offvalue="", variable=write_state)
+        write_checkbox.pack(side=tk.LEFT)
+
+        delete_checkbox = tk.Checkbutton(permissions_frame, text="Delete", onvalue="d", offvalue="", variable=delete_state)
+        delete_checkbox.pack(side=tk.LEFT)
+
+        def add_attribute_set():
+            permissions = read_state.get() + list_state.get() + write_state.get() + delete_state.get()
+
+            attribute_set = {
+                "attribute_requirements": [],
+                "permissions": permissions
+            }
+
+            for holder_frames in attributes_frame.winfo_children():
+                # need to skip the confirm button
+                if isinstance(holder_frames, tk.Button):
+                    continue
+
+                attribute = {
+                    "attribute": "",
+                    "value": ""
+                }
+                for widget in holder_frames.winfo_children():
+                    if "attribute_name" in str(widget):
+                        attribute["attribute"] = widget.get()
+                    if "attribute_value" in str(widget):
+                        attribute["value"] = widget.get()
+
+                attribute_set["attribute_requirements"].append(attribute)
+
+            self.config_json["endpoints"][self.jsonviewer.index(self.jsonviewer.parent(item))]["allowed_attributes"].append(attribute_set)
+
+            with open(args.file, "w") as f:
+                json.dump(self.config_json, f, indent=4)
+
+            allowed_attribute_set_id = self.jsonviewer.insert(item, "end", text="Allowed attribute set " + str(len(self.jsonviewer.get_children(item)) + 1), tags=["tree_item", "allowed_attributes_set"])
+
+            attribute_requirements_id = self.jsonviewer.insert(allowed_attribute_set_id, "end", text="attribute_requirements", tags=["tree_item", "attribute_requirements"])
+            for attribute in attribute_set["attribute_requirements"]:
+                attribute_id = self.jsonviewer.insert(attribute_requirements_id, "end", text=attribute["attribute"], tags=["tree_item", "attribute_name"])
+                value_id = self.jsonviewer.insert(attribute_id, "end", text=attribute["value"], tags=["tree_item", "attribute_value"])
+
+            permissions_label_id = self.jsonviewer.insert(allowed_attribute_set_id, "end", text="permissions", tags=["tree_item", "attributes_permissions_label"])
+            permissions_id = self.jsonviewer.insert(permissions_label_id, "end", text=attribute_set["permissions"], tags=["tree_item", "attributes_permissions_value"])
+
+        confirm_button = tk.Button(self.optionsframe, text="Add allowed attribute set", command=add_attribute_set)
+        confirm_button.pack()
+
     def ip_callback(self, event):
         item = self.jsonviewer.focus()
         self.optionsframe.config(text="Edit IP address " + self.jsonviewer.item(item, "text"))
@@ -344,17 +442,17 @@ class Application(tk.PanedWindow):
         holder_frame = tk.Frame(self.optionsframe)
         holder_frame.pack(side=tk.TOP)
 
-        name_label = tk.Label(holder_frame)
+        name_label = tk.Label(holder_frame, text="Attribute name")
         name_label.pack(side=tk.LEFT)
 
         name_textbox = tk.Entry(holder_frame)
-        name_textbox.pack()
+        name_textbox.pack(side=tk.LEFT)
 
-        value_label = tk.Label(holder_frame)
-        value_label.pack()
+        value_label = tk.Label(holder_frame, text="Attribute value")
+        value_label.pack(side=tk.LEFT)
 
         value_textbox = tk.Entry(holder_frame)
-        value_textbox.pack()
+        value_textbox.pack(side=tk.LEFT)
 
         def add_attribute():
             new_name = name_textbox.get()
