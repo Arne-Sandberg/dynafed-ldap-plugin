@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 from __future__ import print_function, unicode_literals
 import Tkinter as tk
+import tkFileDialog
 import ttk
 import json
-import argparse
 
 
 class Application(tk.PanedWindow):
@@ -12,15 +12,34 @@ class Application(tk.PanedWindow):
     def __init__(self, master=None):
         tk.PanedWindow.__init__(self, master)
         self.master.title("Edit JSON config")
-
-        with open(args.file, "r") as f:
-            self.config_json = json.load(f)
+        self.master.geometry("800x600")
 
         self.pack(fill=tk.BOTH, expand=1)
-        self.createWidgets()
+        self.init_widgets()
+        self.master.config(menu=self.menubar)
+        self.config_file = ""
 
-    def createWidgets(self):
-        self.jsonviewer = ttk.Treeview(selectmode="browse")
+    def choose_config_file(self):
+        with tkFileDialog.askopenfile(parent=self, mode="r", title="Choose a JSON config file") as f:
+            self.config_file = f.name
+            self.config_json = json.load(f)
+            self.populate_tree()
+
+    def new_config_file(self):
+        template = {
+            "server": "",
+            "endpoints": []
+        }
+        with tkFileDialog.asksaveasfile(parent=self, mode="w", title="Choose a location to create JSON config file") as f:
+            json.dump(template, f)
+            self.config_file = f.name
+            self.config_json = template
+            self.populate_tree()
+
+    def populate_tree(self):
+        #clear tree of any old items that may be in the tree
+        for i in self.jsonviewer.get_children():
+            self.jsonviewer.delete(i)
 
         server_id = self.jsonviewer.insert("", "end", text="Server name", tags=["tree_item", "server_label"])
         # save id of tree item so we can find it later
@@ -52,7 +71,6 @@ class Application(tk.PanedWindow):
                 permissions_label_id = self.jsonviewer.insert(allowed_attribute_set_id, "end", text="permissions", tags=["tree_item", "attributes_permissions_label"])
                 permissions_id = self.jsonviewer.insert(permissions_label_id, "end", text=attribute_set["permissions"], tags=["tree_item", "attributes_permissions_value"])
 
-        self.add(self.jsonviewer)
         self.jsonviewer.tag_bind("tree_item", "<<TreeviewSelect>>", self.clear_edit_frame)
         self.jsonviewer.tag_bind("server_value", "<<TreeviewSelect>>", self.server_value_callback)
         self.jsonviewer.tag_bind("endpoints", "<<TreeviewSelect>>", self.endpoints_callback)
@@ -68,14 +86,26 @@ class Application(tk.PanedWindow):
         self.jsonviewer.tag_bind("attribute_value", "<<TreeviewSelect>>", self.attribute_value_callback)
         self.jsonviewer.tag_bind("attributes_permissions_value", "<<TreeviewSelect>>", self.attributes_permissions_value_callback)
 
+    def init_widgets(self):
+        self.jsonviewer = ttk.Treeview(selectmode="browse")
+        self.add(self.jsonviewer, width=300)
+
         self.editframe = tk.Frame(self)
         self.add(self.editframe)
 
         self.optionsframe = tk.LabelFrame(self.editframe, text="Choose part of the config to edit")
-        self.optionsframe.pack(side=tk.TOP, expand=True, fill=tk.BOTH)
+        self.optionsframe.pack(expand=True, fill=tk.BOTH)
 
-        self.quitButton = tk.Button(self.editframe, text='Quit', command=self.quit)
-        self.quitButton.pack()
+        self.menubar = tk.Menu(self)
+
+        filemenu = tk.Menu(self.menubar, tearoff=0)
+        filemenu.add_command(label="New", command=self.new_config_file)
+        filemenu.add_command(label="Open", command=self.choose_config_file)
+        filemenu.add_command(label="Save", command=lambda: print(1))
+        filemenu.add_command(label="Quit", command=self.quit)
+        self.menubar.add_cascade(label="File", menu=filemenu)
+
+        self.menubar.add_command(label="Help", command=lambda: print(1))
 
     # this is called before the other callbacks to clear the previous interface
     def clear_edit_frame(self, event):
@@ -89,14 +119,14 @@ class Application(tk.PanedWindow):
         holder_frame = tk.Frame(self.optionsframe)
         holder_frame.pack()
 
-        textbox = tk.Entry(holder_frame)
+        textbox = tk.Entry(holder_frame, bg="white")
         textbox.pack(side=tk.LEFT)
 
         def update_servername():
             server = textbox.get()
             self.config_json["server"] = server
 
-            with open(args.file, "w") as f:
+            with open(self.config_file, "w") as f:
                 json.dump(self.config_json, f, indent=4)
 
             self.jsonviewer.item(item, text=server)
@@ -111,7 +141,7 @@ class Application(tk.PanedWindow):
         holder_frame = tk.Frame(self.optionsframe)
         holder_frame.pack()
 
-        textbox = tk.Entry(holder_frame)
+        textbox = tk.Entry(holder_frame, bg="white")
         textbox.pack(side=tk.LEFT)
 
         def add_endpoint():
@@ -124,7 +154,7 @@ class Application(tk.PanedWindow):
             }
             self.config_json["endpoints"].append(new_endpoint)
 
-            with open(args.file, "w") as f:
+            with open(self.config_file, "w") as f:
                 json.dump(self.config_json, f, indent=4)
 
             endpoint_id = self.jsonviewer.insert(item, "end", text=endpoint_path)
@@ -141,14 +171,14 @@ class Application(tk.PanedWindow):
         holder_frame = tk.Frame(self.optionsframe)
         holder_frame.pack(side=tk.TOP)
 
-        textbox = tk.Entry(holder_frame)
+        textbox = tk.Entry(holder_frame, bg="white")
         textbox.pack(side=tk.LEFT)
 
         def update_path():
             new_path = textbox.get()
             self.config_json["endpoints"][self.jsonviewer.index(item)]["endpoint_path"] = new_path
 
-            with open(args.file, "w") as f:
+            with open(self.config_file, "w") as f:
                 json.dump(self.config_json, f, indent=4)
 
             self.jsonviewer.item(item, text=new_path)
@@ -159,7 +189,7 @@ class Application(tk.PanedWindow):
         def delete_endpoint():
             del self.config_json["endpoints"][self.jsonviewer.index(item)]
 
-            with open(args.file, "w") as f:
+            with open(self.config_file, "w") as f:
                 json.dump(self.config_json, f, indent=4)
 
             self.jsonviewer.delete(item)
@@ -178,7 +208,7 @@ class Application(tk.PanedWindow):
         def update_propogate_permissions():
             self.config_json["endpoints"][self.jsonviewer.index(endpoint)]["propogate_permissions"] = state.get()
 
-            with open(args.file, "w") as f:
+            with open(self.config_file, "w") as f:
                 json.dump(self.config_json, f, indent=4)
 
             self.jsonviewer.item(item, text=str(state.get()))
@@ -190,7 +220,7 @@ class Application(tk.PanedWindow):
         item = self.jsonviewer.focus()
         self.optionsframe.config(text="Add new IP address for endpoint " + self.jsonviewer.item(self.jsonviewer.parent(item))["text"])
 
-        textbox = tk.Entry(self.optionsframe)
+        textbox = tk.Entry(self.optionsframe, bg="white")
         textbox.pack(side=tk.TOP)
 
         read_state = tk.StringVar(value="")
@@ -221,7 +251,7 @@ class Application(tk.PanedWindow):
 
             self.config_json["endpoints"][self.jsonviewer.index(self.jsonviewer.parent(item))]["allowed_ip_addresses"].append(new_ip_address)
 
-            with open(args.file, "w") as f:
+            with open(self.config_file, "w") as f:
                 json.dump(self.config_json, f, indent=4)
 
             ip_id = self.jsonviewer.insert(item, "end", text=ip_address)
@@ -246,13 +276,13 @@ class Application(tk.PanedWindow):
             name_label = tk.Label(holder_frame, text="Attribute name")
             name_label.pack(side=tk.LEFT)
 
-            name_textbox = tk.Entry(holder_frame, name="attribute_name")
+            name_textbox = tk.Entry(holder_frame, name="attribute_name", bg="white")
             name_textbox.pack(side=tk.LEFT)
 
             value_label = tk.Label(holder_frame, text="Attribute value")
             value_label.pack(side=tk.LEFT)
 
-            value_textbox = tk.Entry(holder_frame, name="attribute_value")
+            value_textbox = tk.Entry(holder_frame, name="attribute_value", bg="white")
             value_textbox.pack(side=tk.LEFT)
 
             def remove_attribute():
@@ -265,8 +295,6 @@ class Application(tk.PanedWindow):
 
             remove_button = tk.Button(holder_frame, text="X", command=remove_attribute)
             remove_button.pack(side=tk.RIGHT)
-
-        add_attribute_fields()
 
         add_attribute_button = tk.Button(attributes_frame, text="Add attribute", command=add_attribute_fields)
         add_attribute_button.pack(side=tk.BOTTOM)
@@ -318,7 +346,7 @@ class Application(tk.PanedWindow):
 
             self.config_json["endpoints"][self.jsonviewer.index(self.jsonviewer.parent(item))]["allowed_attributes"].append(attribute_set)
 
-            with open(args.file, "w") as f:
+            with open(self.config_file, "w") as f:
                 json.dump(self.config_json, f, indent=4)
 
             allowed_attribute_set_id = self.jsonviewer.insert(item, "end", text="Allowed attribute set " + str(len(self.jsonviewer.get_children(item)) + 1), tags=["tree_item", "allowed_attributes_set"])
@@ -342,14 +370,14 @@ class Application(tk.PanedWindow):
         holder_frame = tk.Frame(self.optionsframe)
         holder_frame.pack(side=tk.TOP)
 
-        textbox = tk.Entry(holder_frame)
+        textbox = tk.Entry(holder_frame, bg="white")
         textbox.pack(side=tk.LEFT)
 
         def update_ip():
             new_ip = textbox.get()
             self.config_json["endpoints"][self.jsonviewer.index(self.jsonviewer.parent(self.jsonviewer.parent(item)))]["allowed_ip_addresses"][self.jsonviewer.index(item)]["ip"] = new_ip
 
-            with open(args.file, "w") as f:
+            with open(self.config_file, "w") as f:
                 json.dump(self.config_json, f, indent=4)
 
             self.jsonviewer.item(item, text=new_ip)
@@ -360,7 +388,7 @@ class Application(tk.PanedWindow):
         def delete_ip():
             del self.config_json["endpoints"][self.jsonviewer.index(self.jsonviewer.parent(self.jsonviewer.parent(item)))]["allowed_ip_addresses"][self.jsonviewer.index(item)]
 
-            with open(args.file, "w") as f:
+            with open(self.config_file, "w") as f:
                 json.dump(self.config_json, f, indent=4)
 
             self.jsonviewer.delete(item)
@@ -403,7 +431,7 @@ class Application(tk.PanedWindow):
             endpoint = self.jsonviewer.parent(self.jsonviewer.parent(self.jsonviewer.parent(item)))
             self.config_json["endpoints"][self.jsonviewer.index(endpoint)]["allowed_ip_addresses"][self.jsonviewer.index(self.jsonviewer.parent(item))]["permissions"] = curr_permissions
 
-            with open(args.file, "w") as f:
+            with open(self.config_file, "w") as f:
                 json.dump(self.config_json, f, indent=4)
 
             self.jsonviewer.item(item, text=curr_permissions)
@@ -427,7 +455,7 @@ class Application(tk.PanedWindow):
         def delete_attribute_set():
             del self.config_json["endpoints"][self.jsonviewer.index(self.jsonviewer.parent(self.jsonviewer.parent(item)))]["allowed_attributes"][self.jsonviewer.index(item)]
 
-            with open(args.file, "w") as f:
+            with open(self.config_file, "w") as f:
                 json.dump(self.config_json, f, indent=4)
 
             self.jsonviewer.delete(item)
@@ -445,13 +473,13 @@ class Application(tk.PanedWindow):
         name_label = tk.Label(holder_frame, text="Attribute name")
         name_label.pack(side=tk.LEFT)
 
-        name_textbox = tk.Entry(holder_frame)
+        name_textbox = tk.Entry(holder_frame, bg="white")
         name_textbox.pack(side=tk.LEFT)
 
         value_label = tk.Label(holder_frame, text="Attribute value")
         value_label.pack(side=tk.LEFT)
 
-        value_textbox = tk.Entry(holder_frame)
+        value_textbox = tk.Entry(holder_frame, bg="white")
         value_textbox.pack(side=tk.LEFT)
 
         def add_attribute():
@@ -463,7 +491,7 @@ class Application(tk.PanedWindow):
             }
             self.config_json["endpoints"][self.jsonviewer.index(eval("self.jsonviewer.parent(" * 3 + "item" + ")" * 3))]["allowed_attributes"][self.jsonviewer.index(self.jsonviewer.parent(item))]["attribute_requirements"].append(new_attribute)
 
-            with open(args.file, "w") as f:
+            with open(self.config_file, "w") as f:
                 json.dump(self.config_json, f, indent=4)
 
             attribute_id = self.jsonviewer.insert(item, "end", text=new_name, tags=["tree_item", "attribute_name"])
@@ -479,7 +507,7 @@ class Application(tk.PanedWindow):
         holder_frame = tk.Frame(self.optionsframe)
         holder_frame.pack(side=tk.TOP)
 
-        textbox = tk.Entry(holder_frame)
+        textbox = tk.Entry(holder_frame, bg="white")
         textbox.pack(side=tk.LEFT)
 
         def update_attribute():
@@ -487,7 +515,7 @@ class Application(tk.PanedWindow):
             #self.config_json["endpoints"][self.jsonviewer.index(self.jsonviewer.parent(self.jsonviewer.parent(self.jsonviewer.parent(self.jsonviewer.parent(item)))))]["allowed_attributes"][self.jsonviewer.index(self.jsonviewer.parent(item))]["attribute_requirements"][self.jsonviewer.index(item)]["attribute"] = new_attribute
             self.config_json["endpoints"][self.jsonviewer.index(eval("self.jsonviewer.parent(" * 4 + "item" + ")" * 4))]["allowed_attributes"][self.jsonviewer.index(self.jsonviewer.parent(self.jsonviewer.parent(item)))]["attribute_requirements"][self.jsonviewer.index(item)]["attribute"] = new_attribute
 
-            with open(args.file, "w") as f:
+            with open(self.config_file, "w") as f:
                 json.dump(self.config_json, f, indent=4)
 
             self.jsonviewer.item(item, text=new_attribute)
@@ -498,7 +526,7 @@ class Application(tk.PanedWindow):
         def delete_attribute():
             del self.config_json["endpoints"][self.jsonviewer.index(eval("self.jsonviewer.parent(" * 4 + "item" + ")" * 4))]["allowed_attributes"][self.jsonviewer.index(self.jsonviewer.parent(self.jsonviewer.parent(item)))]["attribute_requirements"][self.jsonviewer.index(item)]
 
-            with open(args.file, "w") as f:
+            with open(self.config_file, "w") as f:
                 json.dump(self.config_json, f, indent=4)
 
             self.jsonviewer.delete(item)
@@ -513,7 +541,7 @@ class Application(tk.PanedWindow):
         holder_frame = tk.Frame(self.optionsframe)
         holder_frame.pack(side=tk.TOP)
 
-        textbox = tk.Entry(holder_frame)
+        textbox = tk.Entry(holder_frame, bg="white")
         textbox.pack(side=tk.LEFT)
 
         def update_value():
@@ -521,7 +549,7 @@ class Application(tk.PanedWindow):
             #self.config_json["endpoints"][self.jsonviewer.index(self.jsonviewer.parent(self.jsonviewer.parent(self.jsonviewer.parent(self.jsonviewer.parent(self.jsonviewer.parent(item))))))]["allowed_attributes"][self.jsonviewer.index(self.jsonviewer.parent(self.jsonviewer.parent(item)))]["attribute_requirements"][self.jsonviewer.index(self.jsonviewer.parent(item))]["value"] = new_value
             self.config_json["endpoints"][self.jsonviewer.index(eval("self.jsonviewer.parent(" * 5 + "item" + ")" * 5))]["allowed_attributes"][self.jsonviewer.index(self.jsonviewer.parent(self.jsonviewer.parent(self.jsonviewer.parent(item))))]["attribute_requirements"][self.jsonviewer.index(self.jsonviewer.parent(item))]["value"] = new_value
 
-            with open(args.file, "w") as f:
+            with open(self.config_file, "w") as f:
                 json.dump(self.config_json, f, indent=4)
 
             self.jsonviewer.item(item, text=new_value)
@@ -564,7 +592,7 @@ class Application(tk.PanedWindow):
             endpoint = self.jsonviewer.parent(self.jsonviewer.parent(self.jsonviewer.parent(self.jsonviewer.parent(item))))
             self.config_json["endpoints"][self.jsonviewer.index(endpoint)]["allowed_attributes"][self.jsonviewer.index(self.jsonviewer.parent(self.jsonviewer.parent(item)))]["permissions"] = curr_permissions
 
-            with open(args.file, "w") as f:
+            with open(self.config_file, "w") as f:
                 json.dump(self.config_json, f, indent=4)
 
             self.jsonviewer.item(item, text=curr_permissions)
@@ -582,13 +610,7 @@ class Application(tk.PanedWindow):
         delete_checkbox.pack()
 
 
-# top level argument parser
-parser = argparse.ArgumentParser()
-
-# is this default okay or mark it as a required option?l
-parser.add_argument("-f, --file", type=str, default="./ldap_auth.json", dest="file", help="Location of the JSON configuration file to act on. Defaults to ./ldap_auth.json")
-
 if __name__ == "__main__":
-    args = parser.parse_args()
-    app = Application()
+    root = tk.Tk()
+    app = Application(root)
     app.mainloop()
