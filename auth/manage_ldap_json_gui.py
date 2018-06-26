@@ -36,8 +36,68 @@ class Application(tk.PanedWindow):
             self.config_json = template
             self.populate_tree()
 
+    def save_config_file(self):
+        template = {
+            "server": "",
+            "endpoints": []
+        }
+        for i in self.jsonviewer.get_children():
+            if self.jsonviewer.item(i)["text"] == "Server Name":
+                server_name_id = self.jsonviewer.get_children(i)[0]
+                template["server"] = self.jsonviewer.item(server_name_id)["text"]
+            if self.jsonviewer.item(i)["text"] == "Endpoints":
+                endpoints_id = i
+
+        # iterate over endpoints
+        for endpoint_id in self.jsonviewer.get_children(endpoints_id):
+            endpoint = {
+                "endpoint_path": "",
+                "allowed_attributes": [],
+                "allowed_ip_addresses": [],
+                "propogate_permissions": True,
+            }
+            endpoint["endpoint_path"] = self.jsonviewer.item(endpoint_id)["text"]
+            for i in self.jsonviewer.get_children(endpoint_id):
+                if self.jsonviewer.item(i)["text"] == "propogate_permissions":
+                    propogate_permissions_value_id = self.jsonviewer.get_children(i)[0]
+                    endpoint["propogate_permissions"] = bool(self.jsonviewer.item(propogate_permissions_value_id)["text"])
+
+                if self.jsonviewer.item(i)["text"] == "allowed_ip_addresses":
+                    for ip_id in self.jsonviewer.get_children(i):
+                        ip_entry = {
+                            "ip": "",
+                            "permissions": ""
+                        }
+                        ip_entry["ip"] = self.jsonviewer.item(ip_id)["text"]
+                        ip_entry["permissions"] = self.jsonviewer.item(self.jsonviewer.get_children(ip_id)[0])["text"]
+                        endpoint["allowed_ip_addresses"].append(ip_entry)
+
+                if self.jsonviewer.item(i)["text"] == "allowed_attributes":
+                    for attribute_set_id in self.jsonviewer.get_children(i):
+                        attribute_set = {
+                            "attribute_requirements": [],
+                            "permissions": ""
+                        }
+                        for ii in self.jsonviewer.get_children(attribute_set_id):
+                            if self.jsonviewer.item(ii)["text"] == "attribute_requirements":
+                                for attribute_id in self.jsonviewer.get_children(ii):
+                                    attribute = {
+                                        "attribute": "",
+                                        "value": ""
+                                    }
+                                    attribute["attribute"] = self.jsonviewer.item(attribute_id)["text"]
+                                    attribute["value"] = self.jsonviewer.item(self.jsonviewer.get_children(attribute_id)[0])["text"]
+                                    attribute_set["attribute_requirements"].append(attribute)
+
+                            if self.jsonviewer.item(ii)["text"] == "permissions":
+                                attribute_set["permissions"] = self.jsonviewer.item(self.jsonviewer.get_children(ii)[0])["text"]
+
+                        endpoint["allowed_attributes"].append(attribute_set)
+
+            template["endpoints"].append(endpoint)
+
     def populate_tree(self):
-        #clear tree of any old items that may be in the tree
+        # clear tree of any old items that may be in the tree
         for i in self.jsonviewer.get_children():
             self.jsonviewer.delete(i)
 
@@ -101,7 +161,7 @@ class Application(tk.PanedWindow):
         filemenu = tk.Menu(self.menubar, tearoff=0)
         filemenu.add_command(label="New", command=self.new_config_file)
         filemenu.add_command(label="Open", command=self.choose_config_file)
-        filemenu.add_command(label="Save", command=lambda: print(1))
+        filemenu.add_command(label="Save", command=self.save_config_file)
         filemenu.add_command(label="Quit", command=self.quit)
         self.menubar.add_cascade(label="File", menu=filemenu)
 
@@ -157,8 +217,7 @@ class Application(tk.PanedWindow):
             with open(self.config_file, "w") as f:
                 json.dump(self.config_json, f, indent=4)
 
-            endpoint_id = self.jsonviewer.insert(item, "end", text=endpoint_path)
-            self.endpoint_ids.append(endpoint_id)
+            self.jsonviewer.insert(item, "end", text=endpoint_path)
 
         confirm_button = tk.Button(holder_frame, text="Add new endpoint", command=add_endpoint)
         confirm_button.pack(side=tk.RIGHT)
@@ -256,8 +315,6 @@ class Application(tk.PanedWindow):
 
             ip_id = self.jsonviewer.insert(item, "end", text=ip_address)
             permissions_id = self.jsonviewer.insert(ip_id, "end", text=permissions)
-            self.ip_ids.append(ip_id)
-            self.permissions_ids.append(permissions_id)
 
         confirm_button = tk.Button(self.optionsframe, text="Add new IP address", command=add_ip)
         confirm_button.pack()
