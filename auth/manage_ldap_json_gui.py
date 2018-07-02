@@ -20,7 +20,7 @@ class Application(tk.PanedWindow):
         self.config_file = ""
 
     def choose_config_file(self):
-        with tkFileDialog.askopenfile(parent=self, mode="r", title="Choose a JSON config file") as f:
+        with tkFileDialog.askopenfile(parent=self, mode="r", title="Choose a JSON config file", defaultextension='.json', filetypes=[("JSON", "*.json"), ("All Files", "*.*")]) as f:
             self.config_file = f.name
             self.config_json = json.load(f)
             self.populate_tree()
@@ -30,7 +30,7 @@ class Application(tk.PanedWindow):
             "server": "",
             "endpoints": []
         }
-        with tkFileDialog.asksaveasfile(parent=self, mode="w", title="Choose a location to create JSON config file") as f:
+        with tkFileDialog.asksaveasfile(parent=self, mode="w", title="Choose a location to create JSON config file", defaultextension='.json', filetypes=[("JSON", "*.json"), ("All Files", "*.*")]) as f:
             json.dump(template, f)
             self.config_file = f.name
             self.config_json = template
@@ -95,6 +95,70 @@ class Application(tk.PanedWindow):
                         endpoint["allowed_attributes"].append(attribute_set)
 
             template["endpoints"].append(endpoint)
+
+        with tkFileDialog.asksaveasfile(parent=self, initialfile=self.config_file, mode="w", title="Choose a location to save JSON config file", defaultextension='.json', filetypes=[("JSON", "*.json"), ("All Files", "*.*")]) as f:
+            json.dump(template, f)
+            self.config_file = f.name
+            self.config_json = template
+            self.populate_tree()
+
+    def help_dialog(self):
+        help_popup = tk.Toplevel(master=self, bd=1, relief="raised", height=1500)
+        help_popup.title("Help")
+        help_text = tk.Text(help_popup, font=("Helvetica", 16))
+        help_text.configure(font=("Times New Roman", 16))
+        help_text.insert(tk.INSERT, "Click on New or Open in the file menu to load a file.\n\n")
+        help_text.insert(tk.INSERT, "Once a file is loaded, the left panel will display a tree structure "
+                                    "representing the structure of the underlying config file. The right panel "
+                                    "will display different controls depending on current selected item and the "
+                                    "functions one can perform on that item.\n\n")
+        help_text.insert(tk.INSERT, "Server Name:", ("bold"))
+        help_text.insert(tk.INSERT, " the child of this item is name of the LDAP server, and click the name "
+                                    "of the server to edit it\n\n")
+        help_text.insert(tk.INSERT, "Endpoints:", ("bold"))
+        help_text.insert(tk.INSERT, " lists all the endpoint paths being protected by the config file, and "
+                                    "new endpoints can be added here by supplying the path of the endpoint\n\n")
+        help_text.insert(tk.INSERT, "Individual endpoint paths (e.g. /foo):", ("bold"))
+        help_text.insert(tk.INSERT, " endpoint paths can be clicked on to edit "
+                                    "the path or to delete the endpoint. It's children specify the allowed IP address "
+                                    "and attributes that can be used to access this endpoint\n\n")
+        help_text.insert(tk.INSERT, "propogate_permissions:", ("bold"))
+        help_text.insert(tk.INSERT, " each endpoint has a propogate_permissions item, which can "
+                                    "edited to be True or False. True means that any subpaths will have the same access "
+                                    "controls applied to them, whereas False means that the access controls only apply "
+                                    "to the current path and not any of it's subpaths. One example where False is "
+                                    "useful to give the top level read permissions so that any user can see bucket names "
+                                    "and not to give the user read permissions for the entire federation\n\n")
+        help_text.insert(tk.INSERT, "allowed_ip_addresses:", ("bold"))
+        help_text.insert(tk.INSERT, " contains all the ip addresses that have some sort of access control. Clicking "
+                                    "on this allows you to add a new ip address and specify its permissions\n\n")
+        help_text.insert(tk.INSERT, "Infividual IP addresses (e.g. 127.0.0.1):", ("bold"))
+        help_text.insert(tk.INSERT, " you can edit the IP address or delete it by clicking on the IP address itself. Its "
+                                    "child contains the permissions which can be modified using checkboxes\n\n")
+        help_text.insert(tk.INSERT, "allowed_attributes:", ("bold"))
+        help_text.insert(tk.INSERT, " contains all the attribute sets that have some sort of access control. Clicking "
+                                    " on this allows you to add a new attribute set and specify its permissions\n\n")
+        help_text.insert(tk.INSERT, "Allowed attribute sets:", ("bold"))
+        help_text.insert(tk.INSERT, " sets of attributes that all have the same permissions. Satisfying any attribute "
+                                    "set will grant the relevant permissions (logical OR), but every attribute in the "
+                                    "attribute_requirements list must be satisfied (logical AND). You can delete the "
+                                    "whole attribute set from the right hand side controls.\n\n")
+        help_text.insert(tk.INSERT, "attribute_requirements:", ("bold"))
+        help_text.insert(tk.INSERT, " contains a list of every attribute-value pair that needs to be satisfied in order "
+                                    "to grant the corresponding permissions. New attribute-value pairs can be added here\n\n")
+        help_text.insert(tk.INSERT, "Attribute name (e.g. email):", ("bold"))
+        help_text.insert(tk.INSERT, " the name of the attribute. The attribute name can be edited or deleted here\n\n")
+        help_text.insert(tk.INSERT, "Attribute value (e.g. example@stfc.ac.uk):", ("bold"))
+        help_text.insert(tk.INSERT, " the value of the parent attribute to match the client against. You can change the value here\n\n")
+        help_text.insert(tk.INSERT, "permissions:", ("bold"))
+        help_text.insert(tk.INSERT, " the permissions that satisfying the attribute_requirements grants the user. "
+                                    "Checkboxes are used to modify the permissions.\n\n")
+
+        help_text.tag_configure("bold", font=("Arial", 12, "bold"), underline=1)
+        height = int(float(help_text.index(tk.END)))
+        print(height)
+        help_text.configure(state=tk.DISABLED, height=height + 20, width=100)
+        help_text.pack()
 
     def populate_tree(self):
         # clear tree of any old items that may be in the tree
@@ -162,10 +226,11 @@ class Application(tk.PanedWindow):
         filemenu.add_command(label="New", command=self.new_config_file)
         filemenu.add_command(label="Open", command=self.choose_config_file)
         filemenu.add_command(label="Save", command=self.save_config_file)
+        filemenu.add_separator()
         filemenu.add_command(label="Quit", command=self.quit)
         self.menubar.add_cascade(label="File", menu=filemenu)
 
-        self.menubar.add_command(label="Help", command=lambda: print(1))
+        self.menubar.add_command(label="Help", command=self.help_dialog)
 
     # this is called before the other callbacks to clear the previous interface
     def clear_edit_frame(self, event):
@@ -218,6 +283,11 @@ class Application(tk.PanedWindow):
                 json.dump(self.config_json, f, indent=4)
 
             self.jsonviewer.insert(item, "end", text=endpoint_path)
+            propogate_permissions_id = self.jsonviewer.insert(endpoint_id, "end", text="propogate_permissions", tags=["tree_item", "propogate_permissions_label"])
+            self.jsonviewer.insert(propogate_permissions_id, "end", text=str(endpoint["propogate_permissions"]), tags=["tree_item", "propogate_permissions_value"])
+
+            self.jsonviewer.insert(endpoint_id, "end", text="allowed_ip_addresses", tags=["tree_item", "allowed_ip_addresses"])
+            self.jsonviewer.insert(endpoint_id, "end", text="allowed_attributes", tags=["tree_item", "allowed_attributes"])
 
         confirm_button = tk.Button(holder_frame, text="Add new endpoint", command=add_endpoint)
         confirm_button.pack(side=tk.RIGHT)
