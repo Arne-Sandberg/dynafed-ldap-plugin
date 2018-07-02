@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 from __future__ import print_function, unicode_literals
-import Tkinter as tk
-import tkFileDialog
-import ttk
+import future
+import tkinter as tk
+from tkinter import ttk
+from tkinter import filedialog
 import json
 
 
@@ -20,7 +21,7 @@ class Application(tk.PanedWindow):
         self.config_file = ""
 
     def choose_config_file(self):
-        with tkFileDialog.askopenfile(parent=self, mode="r", title="Choose a JSON config file", defaultextension='.json', filetypes=[("JSON", "*.json"), ("All Files", "*.*")]) as f:
+        with filedialog.askopenfile(parent=self, mode="r", title="Choose a JSON config file", defaultextension='.json', filetypes=[("JSON", "*.json"), ("All Files", "*.*")]) as f:
             self.config_file = f.name
             self.config_json = json.load(f)
             self.populate_tree()
@@ -30,7 +31,7 @@ class Application(tk.PanedWindow):
             "server": "",
             "endpoints": []
         }
-        with tkFileDialog.asksaveasfile(parent=self, mode="w", title="Choose a location to create JSON config file", defaultextension='.json', filetypes=[("JSON", "*.json"), ("All Files", "*.*")]) as f:
+        with filedialog.asksaveasfile(parent=self, mode="w", title="Choose a location to create JSON config file", defaultextension='.json', filetypes=[("JSON", "*.json"), ("All Files", "*.*")]) as f:
             json.dump(template, f)
             self.config_file = f.name
             self.config_json = template
@@ -96,7 +97,7 @@ class Application(tk.PanedWindow):
 
             template["endpoints"].append(endpoint)
 
-        with tkFileDialog.asksaveasfile(parent=self, initialfile=self.config_file, mode="w", title="Choose a location to save JSON config file", defaultextension='.json', filetypes=[("JSON", "*.json"), ("All Files", "*.*")]) as f:
+        with filedialog.asksaveasfile(parent=self, initialfile=self.config_file, mode="w", title="Choose a location to save JSON config file", defaultextension='.json', filetypes=[("JSON", "*.json"), ("All Files", "*.*")]) as f:
             json.dump(template, f)
             self.config_file = f.name
             self.config_json = template
