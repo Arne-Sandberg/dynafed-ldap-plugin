@@ -156,7 +156,6 @@ class Application(tk.PanedWindow):
 
         help_text.tag_configure("bold", font=("Arial", 12, "bold"), underline=1)
         height = int(float(help_text.index(tk.END)))
-        print(height)
         help_text.configure(state=tk.DISABLED, height=height + 20, width=100)
         help_text.pack()
 
