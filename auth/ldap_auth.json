@@ -1,83 +1,91 @@
 {
-    "server": "fed.cclrc.ac.uk",
     "endpoints": [
         {
-            "endpoint_path": "/myfed",
-            "allowed_attributes": [
+            "allowed_ip_addresses": [
                 {
-                    "attribute_requirements": [],
-                    "permissions": "rl"
-                }
-            ],
-            "allowed_ip_addresses": [],
-            "propogate_permissions": false
-        },
-        {
-            "endpoint_path": "/myfed/ldap",
-            "allowed_attributes": [
-                {
-                    "attribute_requirements": [],
-                    "permissions": "rl"
-                }
-            ],
-            "allowed_ip_addresses": [],
-            "propogate_permissions": false
-        },
-        {
-            "endpoint_path": "/myfed/cert",
-            "allowed_attributes": [
-                {
-                    "attribute_requirements": [],
-                    "permissions": "rl"
-                }
-            ],
-            "allowed_ip_addresses": [],
-            "propogate_permissions": false
-        },
-        {
-            "endpoint_path": "/myfed/ldap/unprotected",
-            "allowed_attributes": [
-                {
-                    "attribute_requirements": [],
+                    "ip": "127.0.0.1", 
                     "permissions": "rlwd"
-                }                
-            ],
-            "allowed_ip_addresses": []
+                }
+            ], 
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": [], 
+                    "permissions": "rl"
+                }
+            ], 
+            "endpoint_path": "/", 
+            "propogate_permissions": false
         },
         {
-            "endpoint_path": "/myfed/ldap/authorised",
+            "allowed_ip_addresses": [], 
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": [], 
+                    "permissions": "rl"
+                }
+            ], 
+            "endpoint_path": "/ldap", 
+            "propogate_permissions": false
+        },
+        {
+            "allowed_ip_addresses": [], 
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": [], 
+                    "permissions": "rl"
+                }
+            ], 
+            "endpoint_path": "/ldap/test", 
+            "propogate_permissions": false
+        },
+        {
+            "allowed_ip_addresses": [], 
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": [], 
+                    "permissions": "rlwd"
+                }
+            ], 
+            "endpoint_path": "/ldap/test/unprotected", 
+            "propogate_permissions": true
+        }, 
+        {
+            "allowed_ip_addresses": [], 
             "allowed_attributes": [
                 {
                     "attribute_requirements": [
                         {
-                            "attribute": "cn",
+                            "attribute": "cn", 
                             "value": "mnf98541"
                         }
-                    ],
+                    ], 
                     "permissions": "rlwd"
-                },
+                }, 
                 {
-                    "attribute_requirements": [   
+                    "attribute_requirements": [
                         {
-                            "attribute": "department",
+                            "attribute": "department", 
                             "value": "Sc"
                         }
-                    ],
+                    ], 
                     "permissions": "rl"
                 }
-            ],
-            "allowed_ip_addresses": []
-        },
+            ], 
+            "endpoint_path": "/ldap/test/authorised", 
+            "propogate_permissions": true
+        }, 
         {
-            "endpoint_path": "/myfed/ldap/unauthorised",
+            "allowed_ip_addresses": [], 
             "allowed_attributes": [
                 {
-                    "attribute_requirements": [],
+                    "attribute_requirements": [], 
                     "permissions": "r"
                 }
-            ],
-            "allowed_ip_addresses": [],
+            ], 
+            "endpoint_path": "/ldap/test/unauthorised", 
             "propogate_permissions": false
         }
-    ]
+    ], 
+    "server": "fed.cclrc.ac.uk",
+    "prefix": "/myfed"
 }
