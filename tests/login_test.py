@@ -25,7 +25,7 @@ class LDAPAuthnTest(unittest.TestCase):
 
     def test_login(self):
         driver = self.driver
-        driver.get("https://" + self.server + "/myfed")
+        driver.get("https://" + self.server + "/myfed/ldap/")
 
         # if we get a pop up, then authentication is on
         popup = True
@@ -41,12 +41,12 @@ class LDAPAuthnTest(unittest.TestCase):
         alert.send_keys(self.username + Keys.TAB + self.password)
         alert.accept()
 
-        WebDriverWait(driver, 5).until(EC.title_is("/myfed/"))
+        WebDriverWait(driver, 5).until(EC.title_is("/myfed/ldap/"))
         self.assertIn(self.username, driver.page_source)
 
     def test_login_fail(self):
         driver = self.driver
-        driver.get("https://" + "wrong_username" + ":" + "wrong_password" + "@" + self.server + "/myfed")
+        driver.get("https://" + "wrong_username" + ":" + "wrong_password" + "@" + self.server + "/myfed/ldap")
 
         # if we get a pop up, then our username and password were wrong
         # if we don't get a pop up then it was accepted for some reason
@@ -80,7 +80,7 @@ class LDAPAuthzTest(unittest.TestCase):
 
     def test_access_allowed(self):
         driver = self.driver
-        driver.get("https://" + self.server + "/myfed/ldap/authorised")
+        driver.get("https://" + self.server + "/myfed/ldap/test/authorised")
 
         WebDriverWait(driver, 5).until(EC.alert_is_present())
 
@@ -89,12 +89,12 @@ class LDAPAuthzTest(unittest.TestCase):
         alert.send_keys(self.username + Keys.TAB + self.password)
         alert.accept()
 
-        WebDriverWait(driver, 5).until(EC.title_is("/myfed/ldap/authorised/"))
+        WebDriverWait(driver, 5).until(EC.title_is("/myfed/ldap/test/authorised/"))
         self.assertIn("Smudge.jpg", driver.page_source)
 
     def test_access_denied(self):
         driver = self.driver
-        driver.get("https://" + self.server + "/myfed/ldap/unauthorised")
+        driver.get("https://" + self.server + "/myfed/ldap/test/unauthorised")
 
         WebDriverWait(driver, 5).until(EC.alert_is_present())
 
@@ -110,13 +110,13 @@ class LDAPAuthzTest(unittest.TestCase):
     def test_download_access_success(self):
         # use requests here to test we get a 200 response when trying to directly download a file
 
-        r = requests.get("https://" + self.server + "/myfed/ldap/authorised/Smudge.jpg", auth=(self.username, self.password), verify="/home/mnf98541/Downloads/UKe-ScienceCombined.crt")
+        r = requests.get("https://" + self.server + "/myfed/ldap/test/authorised/Smudge.jpg", auth=(self.username, self.password), verify=False)
         self.assertEqual(r.status_code, 200)
 
     def test_download_access_fail(self):
         # use requests here to test we get a 403 response when trying to directly download a file
 
-        r = requests.get("https://" + self.server + "/myfed/ldap/unauthorised/Smudge.jpg", auth=(self.username, self.password), verify="/home/mnf98541/Downloads/UKe-ScienceCombined.crt")
+        r = requests.get("https://" + self.server + "/myfed/ldap/test/unauthorised/Smudge.jpg", auth=(self.username, self.password), verify=False)
         self.assertEqual(r.status_code, 403)
 
     def tearDown(self):
@@ -134,9 +134,9 @@ class CertificateAuthTest(unittest.TestCase):
 
     def test_login(self):
         driver = self.driver
-        driver.get("https://" + self.server + "/myfed/cert/authorised")
+        driver.get("https://" + self.server + "/myfed/cert/test/unprotected")
 
-        self.assertIn("CN=louise davies,L=RAL,OU=CLRC,O=eScience,C=UK", driver.page_source)
+        self.assertIn("/C=UK/O=eScience/OU=CLRC/L=RAL/CN=louise davies", driver.page_source)
 
     def tearDown(self):
         self.driver.close()
