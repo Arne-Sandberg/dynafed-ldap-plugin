@@ -39,9 +39,10 @@ class _AuthJSON(object):
     def __init__(self):
         with open("/etc/ugr/conf.d/ldap_auth.json", "r") as f:
             self.auth_dict = json.load(f)
+            prefix = self.auth_dict["prefix"]
             # prepopulate path list so we don't repeatedly parse it
             for endpoint in self.auth_dict["endpoints"]:
-                self.path_list.append(endpoint["endpoint_path"])
+                self.path_list.append(strip_end(strip_end(prefix, "/") + endpoint["endpoint_path"], "/"))
 
     # we want to apply the auth that matches the path most closely,
     # so we have to search the dict for path prefixes that match
@@ -51,6 +52,7 @@ class _AuthJSON(object):
     def auth_info_for_path(self, path):
         stripped_path = strip_end(path, "/")
         split_path = stripped_path.split("/")
+        prefix = self.auth_dict["prefix"]
         i = 0
         while i < len(split_path):
             p = ""
@@ -63,7 +65,7 @@ class _AuthJSON(object):
 
             if p in self.path_list:
                 for endpoint in self.auth_dict["endpoints"]:
-                    if endpoint["endpoint_path"] == p:
+                    if strip_end(strip_end(prefix, "/") + endpoint["endpoint_path"], "/") == p:
                         return {"path": p, "auth_info": endpoint}
             i += 1
 
@@ -90,6 +92,10 @@ def isallowed(clientname="unknown", remoteaddr="nowhere", resource="none", mode=
     print keys
 
     result = myauthjson.auth_info_for_path(resource)
+    if result is None:
+        # failed to match anything
+        return 1
+
     auth_info = result["auth_info"]
     matched_path = result["path"]
     if strip_end(matched_path, "/") != strip_end(resource, "/") and "propogate_permissions" in auth_info and not auth_info["propogate_permissions"]:
@@ -118,23 +124,34 @@ def isallowed(clientname="unknown", remoteaddr="nowhere", resource="none", mode=
     if len(entries) == 1:
         # this should always happen (since we're searching on username) but just to be sure
         user_info = entries[0]
-        for item in auth_info["allowed_attributes"]:
-            # assume True (meaning empty list matches)
-            # if we get an attribute that doesn't match then we fail this set of attributes
-            match = True
-            for attribute in item["attribute_requirements"]:
-                if attribute["attribute"] not in user_info or user_info[attribute["attribute"]] != attribute["value"]:
-                    match = False
+    elif len(entries) == 0:
+        # most likely anonymous user
+        user_info = None
+    else:
+        # error, two usernames???
+        print("more than 1 username found when looking up - error!")
+        return 1
 
-            if match and mode in item["permissions"]:
-                # for testing, so we can see how long doing LDAP search + match takes
-                if cache_miss:
-                    print "ldap cache miss: " + str(time.time() - start_time)
-                else:
-                    print "ldap cache hit: " + str(time.time() - start_time)
+    for item in auth_info["allowed_attributes"]:
+        # assume True (meaning empty list matches)
+        # if we get an attribute that doesn't match then we fail this set of attributes
+        match = True
+        for attribute in item["attribute_requirements"]:
+            # only time anon user is okay is when we require no attributes, so
+            # reject if no user info. otherwise check attribute names and values
+            if user_info is None or attribute["attribute"] not in user_info or user_info[attribute["attribute"]] != attribute["value"]:
+                match = False
+                break
 
-                # if we match on all attributes for this spec and the mode matches the permissions then let them in!
-                return 0
+        if match and mode in item["permissions"]:
+            # for testing, so we can see how long doing LDAP search + match takes
+            if cache_miss:
+                print "ldap cache miss: " + str(time.time() - start_time)
+            else:
+                print "ldap cache hit: " + str(time.time() - start_time)
+
+            # if we match on all attributes for this spec and the mode matches the permissions then let them in!
+            return 0
 
     # if we haven't matched on IP or via LDAP attributes then don't let them in >:(
     return 1
