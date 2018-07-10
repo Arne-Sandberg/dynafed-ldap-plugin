@@ -1,0 +1,715 @@
+{
+    "endpoints": [
+        {
+            "allowed_ip_addresses": [
+                {
+                    "ip": "127.0.0.1", 
+                    "permissions": "rlwd"
+                }
+            ], 
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": [], 
+                    "permissions": "rl"
+                }
+            ], 
+            "endpoint_path": "/", 
+            "propogate_permissions": false
+        },
+        {
+            "allowed_ip_addresses": [], 
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": [], 
+                    "permissions": "rl"
+                }
+            ], 
+            "endpoint_path": "/cert", 
+            "propogate_permissions": false
+        },
+        {
+            "allowed_ip_addresses": [], 
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": [], 
+                    "permissions": "rl"
+                }
+            ], 
+            "endpoint_path": "/cert/ligo", 
+            "propogate_permissions": false
+        },
+        {
+            "allowed_ip_addresses": [], 
+            "endpoint_path": "/cert/ligo/frames", 
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "role", 
+                            "value": "ligoprod"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }, 
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "role", 
+                            "value": "ligouser"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }, 
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "clientname", 
+                            "value": "/C=UK/O=eScience/OU=CLRC/L=RAL/CN=catalin condurache"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }, 
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "clientname", 
+                            "value": "/C=UK/O=eScience/OU=CLRC/L=RAL/CN=alastair dewhurst"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }, 
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "clientname", 
+                            "value": "/DC=ch/DC=cern/OU=Organic Units/OU=Users/CN=bbockelm/CN=659869/CN=Brian Paul Bockelman"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }, 
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "clientname", 
+                            "value": "/C=UK/O=eScience/OU=Cardiff/L=WeSC/CN=paul hopkins"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }
+            ], 
+            "propogate_permissions": true
+        },
+        {
+            "allowed_ip_addresses": [], 
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": [], 
+                    "permissions": "rl"
+                }
+            ], 
+            "endpoint_path": "/cert/test", 
+            "propogate_permissions": false
+        },
+        {
+            "allowed_ip_addresses": [], 
+            "endpoint_path": "/cert/test/authorised", 
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "role", 
+                            "value": "enmruser"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }, 
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "clientname", 
+                            "value": "/C=UK/O=eScience/OU=CLRC/L=RAL/CN=andrew lahiff"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }, 
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "clientname", 
+                            "value": "/C=UK/O=eScience/OU=CLRC/L=RAL/CN=alastair dewhurst"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                },
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "clientname", 
+                            "value": "/C=UK/O=eScience/OU=CLRC/L=RAL/CN=alexander dibbo"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }, 
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "clientname", 
+                            "value": "/C=UK/O=eScience/OU=CLRC/L=RAL/CN=catalin condurache"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }, 
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "clientname", 
+                            "value": "/C=UK/O=eScience/OU=CLRC/L=RAL/CN=louise davies"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }
+            ], 
+            "propogate_permissions": true
+        },{
+            "allowed_ip_addresses": [], 
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": [], 
+                    "permissions": "rlwd"
+                }
+            ], 
+            "endpoint_path": "/cert/test/unprotected", 
+            "propogate_permissions": true
+        },
+        {
+            "allowed_ip_addresses": [], 
+            "endpoint_path": "/cert/test/unauthorised", 
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": [],
+                    "permissions": "rl"
+                }
+            ], 
+            "propogate_permissions": false
+        },
+        {
+            "allowed_ip_addresses": [], 
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": [], 
+                    "permissions": "rl"
+                }
+            ], 
+            "endpoint_path": "/cert/lhcb", 
+            "propogate_permissions": false
+        },
+        {
+            "allowed_ip_addresses": [], 
+            "endpoint_path": "/cert/lhcb/jobs", 
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "role", 
+                            "value": "lhcbprod"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }, 
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "role", 
+                            "value": "lhcbuser"
+                        }
+                    ], 
+                    "permissions": "rl"
+                }, 
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "clientname", 
+                            "value": "/C=UK/O=eScience/OU=CLRC/L=RAL/CN=alastair dewhurst"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }, 
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "clientname", 
+                            "value": "/C=UK/O=eScience/OU=CLRC/L=RAL/CN=andrew lahiff"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }
+            ], 
+            "propogate_permissions": true
+        },
+        {
+            "allowed_ip_addresses": [], 
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": [], 
+                    "permissions": "rl"
+                }
+            ], 
+            "endpoint_path": "/cert/atlas", 
+            "propogate_permissions": false
+        },
+        {
+            "allowed_ip_addresses": [], 
+            "endpoint_path": "/cert/atlas/ral-logs", 
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "role", 
+                            "value": "atlasprod"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }, 
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "role", 
+                            "value": "atlasuser"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }, 
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "clientname", 
+                            "value": "/C=UK/O=eScience/OU=CLRC/L=RAL/CN=gordon brown"
+                        }
+                    ], 
+                    "permissions": "rl"
+                }
+            ], 
+            "propogate_permissions": true
+        }, 
+        {
+            "allowed_ip_addresses": [], 
+            "endpoint_path": "/cert/atlas/azure-datadisk", 
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "role", 
+                            "value": "atlasprod"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }, 
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "role", 
+                            "value": "atlasuser"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }, 
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "clientname", 
+                            "value": "/C=UK/O=eScience/OU=CLRC/L=RAL/CN=gordon brown"
+                        }
+                    ], 
+                    "permissions": "rl"
+                }, 
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "clientname", 
+                            "value": "/C=UK/O=eScience/OU=CLRC/L=RAL/CN=andrew lahiff"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }
+            ], 
+            "propogate_permissions": true
+        }, 
+        {
+            "allowed_ip_addresses": [], 
+            "endpoint_path": "/cert/atlas/ral-eventservice", 
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "role", 
+                            "value": "atlasprod"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }, 
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "role", 
+                            "value": "atlasuser"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }
+            ], 
+            "propogate_permissions": true
+        }, 
+        {
+            "allowed_ip_addresses": [], 
+            "endpoint_path": "/cert/atlas/lancs-eventservice", 
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "role", 
+                            "value": "atlasprod"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }, 
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "role", 
+                            "value": "atlasuser"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }
+            ], 
+            "propogate_permissions": true
+        }, 
+        {
+            "allowed_ip_addresses": [], 
+            "endpoint_path": "/cert/atlas/azure-scratchdisk", 
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "role", 
+                            "value": "atlasprod"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }, 
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "role", 
+                            "value": "atlasuser"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }, 
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "clientname", 
+                            "value": "/C=UK/O=eScience/OU=CLRC/L=RAL/CN=gordon brown"
+                        }
+                    ], 
+                    "permissions": "rl"
+                }, 
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "clientname", 
+                            "value": "/C=UK/O=eScience/OU=CLRC/L=RAL/CN=andrew lahiff"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }
+            ], 
+            "propogate_permissions": true
+        }, 
+        {
+            "allowed_ip_addresses": [], 
+            "endpoint_path": "/cert/atlas/lancs-logs", 
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "role", 
+                            "value": "atlasprod"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }, 
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "role", 
+                            "value": "atlasuser"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }
+            ], 
+            "propogate_permissions": true
+        }, 
+        {
+            "allowed_ip_addresses": [], 
+            "endpoint_path": "/cert/atlas/test", 
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "role", 
+                            "value": "atlasprod"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }, 
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "role", 
+                            "value": "atlasuser"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }
+            ], 
+            "propogate_permissions": true
+        },
+        {
+            "allowed_ip_addresses": [], 
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": [], 
+                    "permissions": "rl"
+                }
+            ], 
+            "endpoint_path": "/cert/dteam", 
+            "propogate_permissions": false
+        },
+        {
+            "allowed_ip_addresses": [
+                {
+                    "ip": "127.0.0.1", 
+                    "permissions": "rwld"
+                }
+            ], 
+            "endpoint_path": "/cert/dteam/disk", 
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "role", 
+                            "value": "dteamprod"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }, 
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "role", 
+                            "value": "dteamuser"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }, 
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "clientname", 
+                            "value": "/C=UK/O=eScience/OU=CLRC/L=RAL/CN=alastair dewhurst"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }, 
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "clientname", 
+                            "value": "/DC=ch/DC=cern/OU=Organic Units/OU=Users/CN=bbockelm/CN=659869/CN=Brian Paul Bockelman"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }, 
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "clientname", 
+                            "value": "/C=UK/O=eScience/OU=CLRC/L=RAL/CN=gordon brown"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }, 
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "clientname", 
+                            "value": "/C=UK/O=eScience/OU=CLRC/L=RAL/CN=andrew lahiff"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }, 
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "clientname", 
+                            "value": "/C=UK/O=eScience/OU=CLRC/L=RAL/CN=alexander dibbo"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }
+            ], 
+            "propogate_permissions": true
+        },
+        {
+            "allowed_ip_addresses": [], 
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": [], 
+                    "permissions": "rl"
+                }
+            ], 
+            "endpoint_path": "/cert/enmr", 
+            "propogate_permissions": false
+        },
+        {
+            "allowed_ip_addresses": [], 
+            "endpoint_path": "/cert/enmr/ccp4-jobs", 
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "role", 
+                            "value": "enmruser"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }, 
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "clientname", 
+                            "value": "/C=UK/O=eScience/OU=CLRC/L=RAL/CN=alastair dewhurst"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }, 
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "clientname", 
+                            "value": "/C=UK/O=eScience/OU=CLRC/L=RAL/CN=catalin condurache"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }, 
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "clientname", 
+                            "value": "/C=UK/O=eScience/OU=CLRC/L=RAL/CN=alexander dibbo"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }, 
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "clientname", 
+                            "value": "/C=UK/O=eScience/OU=CLRC/L=RAL/CN=andrew lahiff"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }
+            ], 
+            "propogate_permissions": true
+        }, 
+        {
+            "allowed_ip_addresses": [], 
+            "endpoint_path": "/cert/enmr/ccp4-data", 
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "role", 
+                            "value": "enmruser"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }, 
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "clientname", 
+                            "value": "/C=UK/O=eScience/OU=CLRC/L=RAL/CN=andrew lahiff"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }, 
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "clientname", 
+                            "value": "/C=UK/O=eScience/OU=CLRC/L=RAL/CN=alastair dewhurst"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }, 
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "clientname", 
+                            "value": "/C=UK/O=eScience/OU=CLRC/L=RAL/CN=alexander dibbo"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                },
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "clientname", 
+                            "value": "/C=UK/O=eScience/OU=CLRC/L=RAL/CN=catalin condurache"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }, 
+                {
+                    "attribute_requirements": [
+                        {
+                            "attribute": "clientname", 
+                            "value": "/C=UK/O=eScience/OU=CLRC/L=RAL/CN=louise davies"
+                        }
+                    ], 
+                    "permissions": "rwld"
+                }
+            ], 
+            "propogate_permissions": true
+        },
+        {
+            "allowed_ip_addresses": [], 
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": [], 
+                    "permissions": "rl"
+                }
+            ], 
+            "endpoint_path": "/cert/ska", 
+            "propogate_permissions": false
+        },
+        {
+            "allowed_ip_addresses": [], 
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": [], 
+                    "permissions": "rl"
+                }
+            ], 
+            "endpoint_path": "/cert/prominence", 
+            "propogate_permissions": false
+        }
+    ], 
+    "server": "",
+    "prefix": "/myfed"
+}
