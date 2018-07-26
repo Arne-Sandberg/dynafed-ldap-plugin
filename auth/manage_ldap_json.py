@@ -561,7 +561,7 @@ def convert_authdb_to_ldap_json(args):
             "endpoint_path": vo_path,
             "allowed_attributes": [
                 {
-                    "attribute_requirements": {},
+                    "attribute_requirements": [],
                     "permissions": "rl"
                 }
             ],
