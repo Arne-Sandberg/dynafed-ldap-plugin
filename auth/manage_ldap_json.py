@@ -32,8 +32,6 @@ def verify(args):
         with open(args.file, "r") as f:
             config_json = json.load(f)
 
-        print("Valid JSON")
-
         # Now need to check that it's valid config on top of being valid JSON
         if "server" not in config_json:
             print("Server not specified")
@@ -155,9 +153,12 @@ def verify(args):
                           str(attr_index) + " endpoint list index " + str(index))
                     return 1
 
-                if not isinstance(allowed_attributes["attribute_requirements"], list):
-                    print("attribute_requirements should be a list, in attribute_requirements list index " +
+                if not isinstance(allowed_attributes["attribute_requirements"], dict):
+                    print("attribute_requirements should be a dict, in attribute_requirements list index " +
                           str(attr_index) + " endpoint list index " + str(index))
+                    return 1
+
+                if check_valid_attribute_condition(allowed_attributes["attribute_requirements"], attr_index, index) == 1:
                     return 1
 
                 # use sets to check that only r, l, w and d values are allowed, it does allow for empty permissions
@@ -168,31 +169,6 @@ def verify(args):
                           str(attr_index) + " endpoint list index " + str(index))
                     return 1
 
-                for attr_req_index, attribute_requirements in enumerate(allowed_attributes["attribute_requirements"]):
-                    if not isinstance(attribute_requirements, dict):
-                        print("attribute_requirements should be a list of objects, " +
-                              "attribute_requirements list index " + str(attr_index) +
-                              " endpoint list index " + str(index) +
-                              " has an attribute_requirements list item that is not an object")
-                        return 1
-
-                    if "attribute" not in attribute_requirements:
-                        print("attribute_requirements items should have an attribute, " +
-                              "attribute_requirements list index " + str(attr_index) +
-                              " endpoint list index " + str(index))
-                        return 1
-
-                    if not isinstance(attribute_requirements["attribute"], basestring):
-                        print("attribute should be a string, attribute_requirements list index " +
-                              str(attr_index) + " endpoint list index " + str(index))
-                        return 1
-
-                    if "value" not in attribute_requirements:
-                        print("attribute_requirements items should have a value, " +
-                              "attribute_requirements list index " + str(attr_index) +
-                              " endpoint list index " + str(index))
-                        return 1
-
         print("Config file is valid")
         # restore stdout
         sys.stdout = sys.__stdout__
@@ -200,6 +176,53 @@ def verify(args):
 
     except ValueError:
         print("Invalid JSON")
+
+
+def check_valid_attribute_condition(attribute_condition, attr_index, endpoint_index):
+    if not isinstance(attribute_condition, dict):
+        print("Atrribute conditions should be dicts, in attribute_requirements list index " +
+              str(attr_index) + " endpoint list index " + str(endpoint_index))
+        return 1
+
+    # empty is valid - means no attributes are required to match
+    if len(attribute_condition) == 0:
+        return 0
+
+    if (("attribute" in attribute_condition and "value" not in attribute_condition) or
+       ("value" in attribute_condition and "attribute" not in attribute_condition)):
+        print("Atrribute specifications should specify both an attribute name and a value" +
+              ", in attribute_requirements list index " + str(attr_index) +
+              " endpoint list index " + str(endpoint_index))
+        return 1
+
+    if "attribute" in attribute_condition and not isinstance(attribute_condition["attribute"], basestring):
+        print("attribute should be a string, attribute_requirements list index " +
+              str(attr_index) + " endpoint list index " + str(endpoint_index))
+        return 1
+
+    if (("attribute" not in attribute_condition and
+         "or" not in attribute_condition and
+         "and" not in attribute_condition)):
+        print("Atrribute conditions should either be an attribute-value pair, " +
+              "or an 'or' condition list or an 'and' condition list" +
+              ", in attribute_requirements list index " + str(attr_index) +
+              " endpoint list index " + str(endpoint_index))
+        return 1
+
+    operator = "or" if "or" in attribute_condition else ""
+    operator = "and" if "and" in attribute_condition else operator
+
+    if (operator in attribute_condition and not isinstance(attribute_condition[operator], list)):
+        print("OR or AND atrribute conditions should contain a list (of attribute conditions)" +
+              ", item in attribute_requirements list index " + str(attr_index) +
+              " endpoint list index " + str(endpoint_index) + " is not a list")
+        return 1
+
+    if (operator in attribute_condition):
+        for sub_attribute_condition in attribute_condition[operator]:
+            check_valid_attribute_condition(sub_attribute_condition, attr_index, endpoint_index)
+
+    return 0
 
 
 def list_endpoints(args):
@@ -219,62 +242,6 @@ def list_endpoints(args):
     return 0
 
 
-def pretty_print_endpoint(endpoint):
-    print("Endpoint path: " + endpoint["endpoint_path"] + "\n")
-    if "propogate_permissions" in endpoint:
-        print("Propogate permissions: " + str(endpoint["propogate_permissions"]))
-    else:
-        print("Propogate permissions: True")
-
-    print("\nAllowed ips")
-    ip_table = {"r": [], "l": [], "w": [], "d": []}
-    for ip in endpoint["allowed_ip_addresses"]:
-        if "r" in ip["permissions"]:
-            ip_table["r"].append(ip["ip"])
-        if "l" in ip["permissions"]:
-            ip_table["l"].append(ip["ip"])
-        if "w" in ip["permissions"]:
-            ip_table["w"].append(ip["ip"])
-        if "d" in ip["permissions"]:
-            ip_table["d"].append(ip["ip"])
-
-    print(tabulate(ip_table, headers=["read", "list", "write", "delete"]))
-    print("\nAllowed Attributes")
-    attribute_table = {"r": [], "l": [], "w": [], "d": []}
-    for allowed_attributes in endpoint["allowed_attributes"]:
-        # empty attribute list means we let anything have those permissions
-        attribute_str = "Anything"
-        for attribute in allowed_attributes["attribute_requirements"]:
-            if attribute_str == "Anything":
-                attribute_str = attribute["attribute"] + " = " + attribute["value"]
-            else:
-                attribute_str = attribute_str + " AND " + attribute["attribute"] + " = " + attribute["value"]
-
-        if "r" in allowed_attributes["permissions"]:
-            if len(attribute_table["r"]) != 0:
-                attribute_table["r"].append(" OR " + attribute_str)
-            else:
-                attribute_table["r"].append(attribute_str)
-        if "l" in allowed_attributes["permissions"]:
-            if len(attribute_table["l"]) != 0:
-                attribute_table["l"].append(" OR " + attribute_str)
-            else:
-                attribute_table["l"].append(attribute_str)
-        if "w" in allowed_attributes["permissions"]:
-            if len(attribute_table["w"]) != 0:
-                attribute_table["w"].append(" OR " + attribute_str)
-            else:
-                attribute_table["w"].append(attribute_str)
-        if "d" in allowed_attributes["permissions"]:
-            if len(attribute_table["d"]) != 0:
-                attribute_table["d"].append(" OR " + attribute_str)
-            else:
-                attribute_table["d"].append(attribute_str)
-
-    print(tabulate(attribute_table, headers=["read", "list", "write", "delete"]))
-    return 0
-
-
 def endpoint_info(args):
     args.surpress_verify_output = True
     if verify(args) != 0:
@@ -288,12 +255,7 @@ def endpoint_info(args):
 
     for endpoint in config_json["endpoints"]:
         if endpoint["endpoint_path"] == args.endpoint_path:
-            # can just print JSON, or try and tidy the data up a bit
-            if args.json:
-                print(json.dumps(endpoint, indent=4))
-            else:
-                pretty_print_endpoint(endpoint)
-
+            print(json.dumps(endpoint, indent=4))
             return 0
 
 
@@ -331,6 +293,57 @@ def prompt_permissions(message):
         clean_permissions = clean_permissions + "d"
 
     return clean_permissions
+
+
+def create_attribute_condition():
+    while True:
+        user_selection = input("\nWould you like to create an OR condition, AND condition or specify an attribute-value pair? \n"
+                               "1) OR\n"
+                               "2) AND\n"
+                               "3) Attribute-value pair\n")
+        if (user_selection != "1" or user_selection != "2" or
+                user_selection != "3"):
+            break
+        else:
+            print("Please enter a number 1-3")
+
+    # OR condition
+    if user_selection == "1":
+        operation = "or"
+        condition = {
+            "or": []
+        }
+
+    # AND condition
+    if user_selection == "2":
+        operation = "and"
+        condition = {
+            "and": []
+        }
+
+    # Attribute-value pair
+    if user_selection == "3":
+        condition = {
+            "attribute": "",
+            "value": ""
+        }
+        # if the user is specifying an attribute
+        # we can't ask for more conditions, so return
+        return condition
+
+    # OR and AND conditions need to ask for sub conditions
+    if user_selection == "1" or "user_selection" == 2:
+        print("Please add an attribute condition to this " + operation + "condition")
+
+        add_condition = True
+        while add_condition:
+            # recurse and prompt if they want to add another condition at this level
+            attribute_condition = create_attribute_condition()
+            condition[operation].append(attribute_condition)
+            add_condition = prompt_bool("Would you like to add another attribute condition to this " +
+                                        operation + "condition? (Y/n)")
+
+    return condition
 
 
 def add_endpoint(args):
@@ -382,46 +395,22 @@ def add_endpoint(args):
     # query loop for attribute permissions
     process_attributes = prompt_bool("Would you like to specify permissions "
                                      "for LDAP attributes? (Y/n) ")
+
     while process_attributes:
-        # can use same variable for both loops - cheeky!
-        attributes = []
-        while process_attributes:
-            attribute = input("Enter attribute name: ")
-            # empty attribute = anon user
-            if not attribute:
-                confirm_empty = prompt_bool("This will apply permissions to any "
-                                            "user, continue? (Y/n) ")
-                if confirm_empty:
-                    # break out of loop and ask for permissions
-                    process_attributes = False
-                else:
-                    # this gets us back to start of loop
-                    continue
-            else:
-                # if non empty, process as normal
-                value = input("Enter attribute value: ")
-
-                attributes.append({"attribute": attribute, "value": value})
-                process_attributes = prompt_bool("Would you like to specify another attribute? "
-                                                 "This will require both the previous "
-                                                 "attributes and the new one to be "
-                                                 "true (logical AND) (Y/n) ")
-
+        attribute_condition = create_attribute_condition()
         permissions = prompt_permissions("Please enter the permissions you would "
                                          "like to give for these attributes. Any "
                                          "combination of r (read) l (list) w (write) "
                                          "and d (delete) are accepted. (r/l/w/d) ")
 
-        new_endpoint["allowed_attributes"].append({"attribute_requirements": attributes,
+        new_endpoint["allowed_attributes"].append({"attribute_requirements": attribute_condition,
                                                    "permissions": permissions})
-        process_attributes = prompt_bool("Would you like to specify another set "
-                                         "of attributes? These are independent "
-                                         "of other attributes specified "
-                                         "(logical OR) (Y/n) ")
 
-    # print(json.dumps(new_endpoint, indent=4))
-    # print outputl
-    pretty_print_endpoint(new_endpoint)
+    process_attributes = prompt_bool("Would you like to specify another "
+                                     "attribute condition with different "
+                                     "permissions for this endpoint? (Y/n)")
+
+    print(json.dumps(new_endpoint, indent=4))
 
     confirmation = prompt_bool("Confirm that you want to insert above "
                                "endpoint into the JSON file? (Y/n) ")
@@ -446,7 +435,7 @@ def remove_endpoint(args):
 
     for endpoint in config_json["endpoints"]:
         if endpoint["endpoint_path"] == args.endpoint_path:
-            pretty_print_endpoint(endpoint)
+            print(json.dumps(endpoint, indent=4))
             remove_confirm = prompt_bool("Confirm that you want to remove the above "
                                          "endpoint configuration from the file? (Y/n) ")
 
@@ -561,7 +550,7 @@ def convert_authdb_to_ldap_json(args):
             "endpoint_path": vo_path,
             "allowed_attributes": [
                 {
-                    "attribute_requirements": [],
+                    "attribute_requirements": {},
                     "permissions": "rl"
                 }
             ],
@@ -644,7 +633,7 @@ def convert_authdb_to_ldap_json(args):
     return 0
 
 
-def modify_endpoint(args):
+def add_users(args):
     args.surpress_verify_output = True
     if verify(args) != 0:
         # restore stdout
@@ -655,266 +644,171 @@ def modify_endpoint(args):
     with open(args.file, "r") as f:
         config_json = json.load(f)
 
-    modified_endpoint_index = -1
-    for index, endpoint in enumerate(config_json["endpoints"]):
-        if endpoint["endpoint_path"] == args.endpoint_path:
-            # found our endpoint
-            modified_endpoint_index = index
-            break
+    # TODO: search for existing endpoint
+    create_endpoint = False
+    endpoint = {}
+    for endpoint_i in config_json["endpoints"]:
+        if args.endpoint_path == endpoint_i["endpoint_path"]:
+            endpoint = endpoint_i
+    if not endpoint:
+        create_endpoint = prompt_bool("Endpoint supplied does not exist in the config, would you like to create one? (Y/n)")
 
-    # path not found
-    if modified_endpoint_index == -1:
-        print("Endpoint path not found in the config file")
-        return 1
+        if not create_endpoint:
+            print("Exited without modifying config file")
+            return 0
 
-    modified_endpoint = config_json["endpoints"].pop(modified_endpoint_index)
+    if create_endpoint:
+        endpoint = {
+            "endpoint_path": args.endpoint_path,
+            "allowed_attributes": [],
+            "allowed_ip_addresses": [],
+            "propogate_permissions": True
+        }
 
-    pretty_print_endpoint(modified_endpoint)
-    print("\n1) Edit path\n"
-          "2) Edit propogate_permissions\n"
-          "3) Edit IP permissions\n"
-          "4) Edit attribute permissions\n")
+        print("Creating config for endpoint " + args.endpoint_path + "\n")
 
-    while True:
-        user_selection = input("Enter a number to choose what to edit: ")
-        if (user_selection != "1" or user_selection != "2" or
-                user_selection != "3" or user_selection != "4"):
-            break
-        else:
-            print("Please enter a number 1-4")
+        propogate_permissions = prompt_bool("Should the permissions specified for this "
+                                            "path be applied to any of it's children/"
+                                            "subfolders not specified in this file? (Y/n) ")
+        endpoint["propogate_permissions"] = propogate_permissions
+        config_json["endpoints"].append(endpoint)
 
-    # edit path
-    if user_selection == "1":
-        new_path = input("Please enter the new path you would "
-                         "like this config to apply to: ")
-        confirm = prompt_bool("Is " + new_path + " correct? (Y/n) ")
-        if confirm:
-            modified_endpoint["endpoint_path"] = new_path
+    # check if there are existing rl and rlwd permission sections
+    rl_attribute_condition = {}
+    rlwd_attribute_condition = {}
+    for allowed_attributes in endpoint["allowed_attributes"]:
+        # it doesn't matter too much if the user has decided to create
+        # different allowed_attributes with the same permission string
+        # we just add to the first one we find
 
-    # edit propogate_permissions
-    if user_selection == "2":
-        confirm = prompt_bool("propogate_permissions is currently set to " +
-                              str(modified_endpoint["propogate_permissions"]) +
-                              ", would you like to change this to " +
-                              str(not modified_endpoint["propogate_permissions"]) +
-                              "? (Y/n) ")
-        if confirm:
-            modified_endpoint["propogate_permissions"] = not modified_endpoint["propogate_permissions"]
+        # sort before checking to ensure we get all valid combinations
+        if "".join(sorted(allowed_attributes["permissions"])) == "lr":
+            rl_attribute_condition = allowed_attributes
 
-    # edit ips
-    if user_selection == "3":
-        while True:
-            user_ip_command_selection = input("\nWhat would you like to do? \n"
-                                              "1) Update exisiting IP address permissions\n"
-                                              "2) Add new IP address(es)\n"
-                                              "3) Remove IP address(es)\n")
+        if "".join(sorted(allowed_attributes["permissions"])) == "dlrw":
+            rlwd_attribute_condition = allowed_attributes
 
-            if (user_ip_command_selection != "1" or
-                    user_ip_command_selection != "2" or
-                    user_ip_command_selection != "3"):
-                break
-            else:
-                print("Please enter a number 1-3")
+    # do read users first
+    if "read_users" in args and len(args.read_users) > 0:
+        # do we add to an existing allowed_attributes entry?
+        if rl_attribute_condition:
+            endpoint["allowed_attributes"].remove(rl_attribute_condition)
 
-        # add new IP doesn't require selecting an old IP so do this first
-        if user_ip_command_selection == "2":
-            process_ips = True
-            while process_ips:
-                while True:
-                    ip = input("Enter ip address: ")
-                    # TODO ipv6?
-                    try:
-                        socket.inet_aton(ip)
-                        break
-                    except socket.error:
-                        print("Invalid ip address")
+            # need to deal with whatever is already in the attribute condition
+            # and create an or as the top layer with which we can add
+            # our new users to
+            if "attribute" in rl_attribute_condition["attribute_requirements"]:
+                existing_attribute_name = rl_attribute_condition["attribute_requirements"]["attribute"]
+                existing_attribute_value = rl_attribute_condition["attribute_requirements"]["value"]
 
-                permissions = prompt_permissions("Please enter the permissions you "
-                                                 "would like to give for this ip. "
-                                                 "Any combination of r (read) l "
-                                                 "(list) w (write) and d (delete)"
-                                                 " are accepted. (r/l/w/d) ")
-                modified_endpoint["allowed_ip_addresses"].append({"ip": ip,
-                                                                  "permissions": permissions})
-                process_ips = prompt_bool("Would you like to specify"
-                                          "another IP address? (Y/n) ")
+                rl_attribute_condition = {
+                    "attribute_requirements": {
+                        "or": []
+                    },
+                    "permissions": "rl"
+                }
+                attribute = {
+                    "attribute": existing_attribute_name,
+                    "value": existing_attribute_value
+                }
+                rl_attribute_condition["attribute_requirements"]["or"].append(attribute)
 
-        else:
-            for index, ip in enumerate(modified_endpoint["allowed_ip_addresses"]):
-                print(str(index + 1) + ") " + ip["ip"] + " : " + ip["permissions"])
+            if "and" in rl_attribute_condition["attribute_requirements"]:
+                and_condition = rl_attribute_condition["attribute_requirements"]["and"]
 
-            while True:
-                user_ip_selection = input("Enter a number to choose what to edit/delete: ")
-                try:
-                    if int(user_ip_selection) <= index + 1 and int(user_ip_selection) > 0:
-                        break
-                    else:
-                        print("Please enter a number 1-" + str(index + 1))
-                except ValueError:
-                    print("Please enter a number 1-" + str(index + 1))
+                rl_attribute_condition = {
+                    "attribute_requirements": {
+                        "or": []
+                    },
+                    "permissions": "rl"
+                }
+                rl_attribute_condition["attribute_requirements"]["or"].append(and_condition)
 
-            # modify permissions
-            if user_ip_command_selection == "1":
-                ip = modified_endpoint["allowed_ip_addresses"][int(user_ip_selection) - 1]
-                permissions = prompt_permissions("Currently the IP address " +
-                                                 ip["ip"] + " has the permissions: " +
-                                                 ip["permissions"] +
-                                                 ". Please enter a new permissions string: ")
-                ip["permissions"] = permissions
-
-            # remove ip
-            if user_ip_command_selection == "3":
-                modified_endpoint["allowed_ip_addresses"].pop(int(user_ip_selection - 1))
-
-    # edit LDAP attributes
-    if user_selection == "4":
-        while True:
-            user_attribute_set_command_selection = input("\nWhat would you like to do? \n"
-                                                         "1) Update exisiting set of attributes\n"
-                                                         "2) Add new set of attributes\n"
-                                                         "3) Remove set of attributes\n")
-
-            if (user_attribute_set_command_selection != "1" or
-                    user_attribute_set_command_selection != "2" or
-                    user_attribute_set_command_selection != "3"):
-                break
-            else:
-                print("Please enter a number 1-3")
-
-        # don't need to select an existing attribute set to add, so do this first
-        process_attributes = True
-        if user_attribute_set_command_selection == "2":
-            attributes = []
-            while process_attributes:
-                attribute = input("Enter attribute name: ")
-                # empty attribute = anon user
-                if not attribute:
-                    confirm_empty = prompt_bool("This will apply permissions to "
-                                                "any user, continue? (Y/n) ")
-                    if confirm_empty:
-                        # break out of loop and ask for permissions
-                        process_attributes = False
-                    else:
-                        # this gets us back to start of loop
-                        continue
-                else:
-                    # if non empty, process as normal
-                    value = input("Enter attribute value: ")
-
-                    attributes.append({"attribute": attribute, "value": value})
-                    process_attributes = prompt_bool("Would you like to specify "
-                                                     "another attribute? This will "
-                                                     "require both the previous "
-                                                     "attributes and the new one "
-                                                     "to be true (logical AND) (Y/n) ")
-
-            permissions = prompt_permissions("Please enter the permissions you "
-                                             "would like to give for these "
-                                             "attributes. Any combination of r "
-                                             "(read) l (list) w (write) and d "
-                                             "(delete) are accepted. (r/l/w/d) ")
-
-            modified_endpoint["allowed_attributes"].append({"attribute_requirements": attributes,
-                                                            "permissions": permissions})
+            # don't need to do anything for existing or condition, just add additional
+            # users to it like normal below
 
         else:
-            for index, attribute_set in enumerate(modified_endpoint["allowed_attributes"]):
-                # TODO: need to print smarter...
-                print(str(index + 1) + ") \n" + json.dumps(attribute_set, indent=4))
+            rl_attribute_condition = {
+                "attribute_requirements": {
+                    "or": []
+                },
+                "permissions": "rl"
+            }
 
-            while True:
-                user_attribute_set_selection = input("Enter a number to choose "
-                                                     "what attribute set to edit/delete: ")
-                try:
-                    if int(user_attribute_set_selection) <= index + 1 and int(user_attribute_set_selection) > 0:
-                        break
-                    else:
-                        print("Please enter a number 1-" + str(index + 1))
-                except ValueError:
-                    print("Please enter a number 1-" + str(index + 1))
+        for user in args.read_users:
+            attribute = {
+                "attribute": args.username_attr,
+                "value": user
+            }
+            rl_attribute_condition["attribute_requirements"]["or"].append(attribute)
 
-            # delete attribute set
-            if user_attribute_set_command_selection == "3":
-                modified_endpoint["allowed_attributes"].pop(int(user_attribute_set_selection) - 1)
+        endpoint["allowed_attributes"].append(rl_attribute_condition)
 
-            # modify attributes or values
-            if user_attribute_set_command_selection == "1":
-                attribute_set = modified_endpoint["allowed_attributes"][int(user_attribute_set_selection) - 1]
-                for index, attribute in enumerate(attribute_set["attribute_requirements"]):
-                    print(str(index + 1) + ") Edit " + attribute["attribute"] + " = " + attribute["value"])
+    # now do write users
+    if "write_users" in args and len(args.write_users) > 0:
+        # do we add to an existing allowed_attributes entry?
+        if rlwd_attribute_condition:
+            endpoint["allowed_attributes"].remove(rlwd_attribute_condition)
 
-                index += 1  # need this to allow for permissions option
-                print(str(index + 1) + ") Edit permissions")
+            # need to deal with whatever is already in the attribute condition
+            # and create an or as the top layer with which we can add
+            # our new users to
+            if "attribute" in rlwd_attribute_condition["attribute_requirements"]:
+                existing_attribute_name = rlwd_attribute_condition["attribute_requirements"]["attribute"]
+                existing_attribute_value = rlwd_attribute_condition["attribute_requirements"]["value"]
 
-                while True:
-                    user_attribute_selection = input("Enter a number to choose what to edit: ")
-                    try:
-                        if int(user_attribute_selection) < index + 1 and int(user_attribute_selection) > 0:
-                            break
-                        else:
-                            print("Please enter a number 1-" + str(index + 1))
-                    except ValueError:
-                        print("Please enter a number 1-" + str(index + 1))
+                rlwd_attribute_condition = {
+                    "attribute_requirements": {
+                        "or": []
+                    },
+                    "permissions": "rlwd"
+                }
+                attribute = {
+                    "attribute": existing_attribute_name,
+                    "value": existing_attribute_value
+                }
+                rlwd_attribute_condition["attribute_requirements"]["or"].append(attribute)
 
-                if user_attribute_selection == str(index + 1):
-                    # modify permissions
-                    permissions = prompt_permissions("Please enter the permissions "
-                                                     "you would like to give for "
-                                                     "these attributes. Any combination "
-                                                     "of r (read) l (list) w (write) "
-                                                     "and d (delete) are accepted. (r/l/w/d) ")
-                    attribute_set["permissions"] = permissions
-                else:
-                    # modify either the attribute name or value
-                    attr_index = int(user_attribute_selection) - 1  # we added 1 to make it 1-indexed, so reverse
-                    attribute = attribute_set["attribute_requirements"][attr_index]
-                    print("\n1) Change attribute name, currently: " + attribute["attribute"])
-                    print("2) Change attribute value, currently: " + attribute["value"])
+            if "and" in rlwd_attribute_condition["attribute_requirements"]:
+                and_condition = rlwd_attribute_condition["attribute_requirements"]["and"]
 
-                    while True:
-                        user_attr_val_selection = input("Enter a number to choose "
-                                                        "whether to edit the attribute "
-                                                        "name or its value: ")
-                        try:
-                            if int(user_attr_val_selection) < 3 and int(user_attr_val_selection) > 0:
-                                break
-                            else:
-                                print("Please enter a number 1-2")
-                        except ValueError:
-                            print("Please enter a number 1-2")
+                rlwd_attribute_condition = {
+                    "attribute_requirements": {
+                        "or": []
+                    },
+                    "permissions": "rlwd"
+                }
+                rlwd_attribute_condition["attribute_requirements"]["or"].append(and_condition)
 
-                    if user_attr_val_selection == "1":
-                        # empty attribute = anon user
-                        while True:
-                            attribute_name = input("Enter attribute name: ")
-                            if not attribute_name:
-                                confirm_empty = prompt_bool("This will apply permissions "
-                                                            "to any user, continue? (Y/n) ")
-                                if confirm_empty:
-                                    break
-                                else:
-                                    continue
-                            else:
-                                break
+            # don't need to do anything for existing or condition, just add additional
+            # users to it like normal below
 
-                        attribute_set["attribute_requirements"][attr_index]["attribute"] = attribute_name
+        else:
+            rlwd_attribute_condition = {
+                "attribute_requirements": {
+                    "or": []
+                },
+                "permissions": "rlwd"
+            }
 
-                    if user_attr_val_selection == "2":
-                        attribute_value = input("Enter attribute value: ")
-                        attribute_set["attribute_requirements"][attr_index]["value"] = attribute_value
+        for user in args.read_users:
+            attribute = {
+                "attribute": args.username_attr,
+                "value": user
+            }
+            rlwd_attribute_condition["attribute_requirements"]["or"].append(attribute)
 
-    # return endpoint back to config with any modifications applied
-    config_json["endpoints"].append(modified_endpoint)
+        endpoint["allowed_attributes"].append(rlwd_attribute_condition)
+
     with open(args.file, "w") as f:
         json.dump(config_json, f, indent=4)
 
     return 0
 
-
 # top level argument parser
 parser = argparse.ArgumentParser()
 
-# is this default okay or mark it as a required option?l
+# is this default okay or mark it as a required option?
 parser.add_argument("-f, --file", type=str, default="./ldap_auth.json", dest="file", help="Location of the JSON configuration file to act on. Defaults to ./ldap_auth.json")
 subparsers = parser.add_subparsers(title="subcommands", description="Functions that can be performed on the JSON file")
 
@@ -930,13 +824,20 @@ parser_list.set_defaults(func=list_endpoints)
 # parser for info command
 parser_info = subparsers.add_parser("info", help="Get the configuration information for an endpoint")
 parser_info.add_argument("endpoint_path", help="Endpoint path to get info on")
-parser_info.add_argument("--json", action="store_true", help="Just print the JSON entry")
 parser_info.set_defaults(func=endpoint_info)
 
 # parser for add command
 parser_add = subparsers.add_parser("add", help="Add a new endpoint to the authorisation file")
 parser_add.add_argument("endpoint_path", help="Endpoint path to add authorisation info for")
 parser_add.set_defaults(func=add_endpoint)
+
+# parser for addusers command
+parser_addusers = subparsers.add_parser("addusers", help="Add a new users to the authorisation file")
+parser_addusers.add_argument("endpoint_path", help="Endpoint path to add users to the authorisation info")
+parser_addusers.add_argument("-r, --read-users", dest="read_users", nargs="+", help="Supply usernames for users who should have read and list permissions")
+parser_addusers.add_argument("-w, --write-users", dest="write_users", nargs="+", help="Supply usernames for users who should have read, list, write and delete permissions")
+parser_addusers.add_argument("-u, --username-attr", type=str, dest="username_attr", required=True, help="The name of tha attribute in which the username is stored.")
+parser_addusers.set_defaults(func=add_users)
 
 # parser for remove command
 parser_remove = subparsers.add_parser("remove", help="Remove a new endpoint to the authorisation file")
@@ -960,11 +861,6 @@ parser_convert.add_argument("output_filename", help="Path to where you want to s
 parser_convert.add_argument("--base-prefix", dest="base_prefix", required=True, help="Base federation prefix to be added to config")
 parser_convert.add_argument("--bucket-prefix", dest="bucket_prefix", help="Path prefix to be prepended to all paths (e.g. authentication prefix 'cert'")
 parser_convert.set_defaults(func=convert_authdb_to_ldap_json)
-
-# parser for modify command
-parser_modify = subparsers.add_parser("modify", help="Modify the information in an existing endpoint entry")
-parser_modify.add_argument("endpoint_path", help="Endpoint path to modify authorisation info for")
-parser_modify.set_defaults(func=modify_endpoint)
 
 if __name__ == "__main__":
     args = parser.parse_args()
