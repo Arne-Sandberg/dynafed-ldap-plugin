@@ -123,7 +123,7 @@ class LDAPAuthzTest(unittest.TestCase):
         self.driver.close()
 
 
-class CertificateAuthTest(unittest.TestCase):
+class CertificateAuthSuccessTest(unittest.TestCase):
     server = "vm28.nubes.stfc.ac.uk"
 
     def setUp(self):
@@ -137,6 +137,70 @@ class CertificateAuthTest(unittest.TestCase):
         driver.get("https://" + self.server + "/myfed/cert/test/unprotected")
 
         self.assertIn("/C=UK/O=eScience/OU=CLRC/L=RAL/CN=louise davies", driver.page_source)
+
+    def test_see_all_buckets(self):
+        driver = self.driver
+        driver.get("https://" + self.server + "/myfed/cert")
+
+        WebDriverWait(driver, 5).until(EC.title_is("/myfed/cert/"))
+        self.assertIn("atlas", driver.page_source)
+        self.assertIn("dteam", driver.page_source)
+        self.assertIn("enmr", driver.page_source)
+        self.assertIn("lhcb", driver.page_source)
+        self.assertIn("ligo", driver.page_source)
+        self.assertIn("prominence", driver.page_source)
+        self.assertIn("ska", driver.page_source)
+        self.assertIn("test", driver.page_source)
+
+    def test_access_allowed_simple(self):
+        driver = self.driver
+        driver.get("https://" + self.server + "/myfed/cert/test/authorised")
+
+        WebDriverWait(driver, 5).until(EC.title_is("/myfed/cert/test/authorised/"))
+        self.assertIn("Smudge.jpg", driver.page_source)
+
+    def test_access_allowed(self):
+        driver = self.driver
+        driver.get("https://" + self.server + "/myfed/cert/enmr/ccp4-data")
+
+        WebDriverWait(driver, 5).until(EC.title_is("/myfed/cert/enmr/ccp4-data/"))
+        self.assertIn("Powered by LCGDM-DAV", driver.page_source)
+
+    def test_access_denied_simple(self):
+        driver = self.driver
+        driver.get("https://" + self.server + "/myfed/cert/test/unauthorised")
+
+        WebDriverWait(driver, 5).until(EC.title_is("403 Forbidden"))
+
+        self.assertNotIn("Smudge.jpg", driver.page_source)
+
+    def test_access_denied(self):
+        driver = self.driver
+        driver.get("https://" + self.server + "/myfed/cert/enmr/ccp4-jobs")
+
+        WebDriverWait(driver, 5).until(EC.title_is("403 Forbidden"))
+
+        self.assertNotIn("Powered by LCGDM-DAV", driver.page_source)
+
+    def tearDown(self):
+        self.driver.close()
+
+
+class CertificateAuthFailureTest(unittest.TestCase):
+    server = "vm28.nubes.stfc.ac.uk"
+
+    def setUp(self):
+        binary = FirefoxBinary("/home/mnf98541/Downloads/firefox-58.0.2/firefox")
+        # don't specify profile, so we don't have certificate
+        self.driver = webdriver.Firefox(firefox_binary=binary)
+
+    def test_login_fail(self):
+        driver = self.driver
+        driver.get("https://" + self.server + "/myfed/cert/test/authorised")
+
+        WebDriverWait(driver, 5).until(EC.title_is("403 Forbidden"))
+
+        self.assertNotIn("/C=UK/O=eScience/OU=CLRC/L=RAL/CN=louise davies", driver.page_source)
 
     def tearDown(self):
         self.driver.close()
