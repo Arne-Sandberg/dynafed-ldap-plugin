@@ -83,13 +83,44 @@ c.start_tls()
 cache = TTLCache(maxsize=256, ttl=1800)
 
 
+# return true or false based on condition
+def process_condition(condition, user_info):
+    # empty list = don't check any attributes, so auto match
+    if len(condition) == 0:
+        return True
+    if "attribute" in condition:
+        # only one attribute to check
+        if user_info is None or condition["attribute"] not in user_info or user_info[condition["attribute"]] != condition["value"]:
+            return False
+        else:
+            return True
+    if "or" in condition:
+        # need to match one of anything in the list, so moment we match something
+        # return true, if we finish without matching nothing matched so return
+        # false
+        match_or = condition["or"]
+        for or_condition in match_or:
+            match = process_condition(or_condition, user_info)
+            if match:
+                return True
+        return False
+    if "and" in condition:
+        # need to match everything in the list, so moment we don't match return
+        # false, if we escape without returning false then everything must
+        # have been true so return true
+        match_and = condition["and"]
+        for and_condition in match_and:
+            match = process_condition(and_condition, user_info)
+            if not match:
+                return False
+        return True
+    # TODO: extend to other operators if we need them?
+
+
 # The main function that has to be invoked from ugr to determine if a request
 # has to be performed or not
 def isallowed(clientname="unknown", remoteaddr="nowhere", resource="none", mode="0", fqans=None, keys=None):
     start_time = time.time()
-    print clientname
-    print resource
-    print keys
 
     result = myauthjson.auth_info_for_path(resource)
     if result is None:
@@ -133,15 +164,9 @@ def isallowed(clientname="unknown", remoteaddr="nowhere", resource="none", mode=
         return 1
 
     for item in auth_info["allowed_attributes"]:
-        # assume True (meaning empty list matches)
-        # if we get an attribute that doesn't match then we fail this set of attributes
-        match = True
-        for attribute in item["attribute_requirements"]:
-            # only time anon user is okay is when we require no attributes, so
-            # reject if no user info. otherwise check attribute names and values
-            if user_info is None or attribute["attribute"] not in user_info or user_info[attribute["attribute"]] != attribute["value"]:
-                match = False
-                break
+        # use process_condition to check whether we match or not
+        condition = item["attribute_requirements"]
+        match = process_condition(condition, user_info)
 
         if match and mode in item["permissions"]:
             # for testing, so we can see how long doing LDAP search + match takes

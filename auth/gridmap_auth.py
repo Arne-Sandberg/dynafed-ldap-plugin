@@ -88,6 +88,44 @@ myauthlist = _Authlist()
 myauthjson = _AuthJSON()
 
 
+# return true or false based on condition
+def process_condition(condition, clientname):
+    # empty list = don't check any attributes, so auto match
+    if len(condition) == 0:
+        print("len == 0")
+        return True
+    if "attribute" in condition:
+        # only one attribute to check
+        print("attribute")
+        if condition["attribute"] == "clientname" and condition["value"] != clientname:
+            return False
+        if condition["attribute"] == "role" and (not myauthlist.authenticateUser(clientname) or condition["value"] != myauthlist.getRole(clientname)):
+            return False
+        else:
+            return True
+    if "or" in condition:
+        # need to match one of anything in the list, so moment we match something
+        # return true, if we finish without matching nothing matched so return
+        # false
+        match_or = condition["or"]
+        for or_condition in match_or:
+            match = process_condition(or_condition, clientname)
+            if match:
+                return True
+        return False
+    if "and" in condition:
+        # need to match everything in the list, so moment we don't match return
+        # false, if we escape without returning false then everything must
+        # have been true so return true
+        match_and = condition["and"]
+        for and_condition in match_and:
+            match = process_condition(and_condition, clientname)
+            if not match:
+                return False
+        return True
+    # TODO: extend to other operators if we need them?
+
+
 def isallowed(clientname="unknown", remoteaddr="nowhere", resource="none", mode="0", fqans=None, keys=None):
 #    print "clientname", clientname
 #    print "remote address", remoteaddr
@@ -99,7 +137,6 @@ def isallowed(clientname="unknown", remoteaddr="nowhere", resource="none", mode=
     result = myauthjson.auth_info_for_path(resource)
     if result is None:
         # failed to match anything
-        print("nada")
         return 1
 
     auth_info = result["auth_info"]
@@ -118,20 +155,9 @@ def isallowed(clientname="unknown", remoteaddr="nowhere", resource="none", mode=
             return 0
 
     for item in auth_info["allowed_attributes"]:
-        # assume True (meaning empty list matches)
-        # if we get an attribute that doesn't match then we fail this set of attributes
-        match = True
-        for attribute in item["attribute_requirements"]:
-            print(attribute)
-            # if there is a clientname requirement and it doesn't match then reject
-            if attribute["attribute"] == "clientname" and attribute["value"] != clientname:
-                match = False
-                break
-
-            # if there is a role requirement and if not in gridmap or it doesn't match then reject
-            if attribute["attribute"] == "role" and (not myauthlist.authenticateUser(clientname) or attribute["value"] != myauthlist.getRole(clientname)):
-                match = False
-                break
+        # use process_condition to check whether we match or not
+        condition = item["attribute_requirements"]
+        match = process_condition(condition, clientname)
 
         if match and mode in item["permissions"]:
             # if we match on all attributes for this spec and the mode matches the permissions then let them in!
