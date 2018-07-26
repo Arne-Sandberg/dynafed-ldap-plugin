@@ -39,6 +39,10 @@ def verify(args):
             print("Server not specified")
             return 1
 
+        if "prefix" not in config_json:
+            print("Federation prefix not specified")
+            return 1
+
         # check if server given can be contacted
         # ignore blank in case the config doesn't need a server
         if config_json["server"]:
@@ -344,7 +348,8 @@ def add_endpoint(args):
     new_endpoint = {
         "endpoint_path": args.endpoint_path,
         "allowed_attributes": [],
-        "allowed_ip_addresses": []
+        "allowed_ip_addresses": [],
+        "propogate_permissions": True
     }
 
     print("Creating config for endpoint " + args.endpoint_path + "\n")
@@ -482,18 +487,91 @@ def server(args):
     return 0
 
 
+def prefix(args):
+    args.surpress_verify_output = True
+    if verify(args) != 0:
+        # restore stdout
+        sys.stdout = sys.__stdout__
+        print("Config file not valid, please use the verify function to debug")
+        return 1
+
+    with open(args.file, "r") as f:
+        config_json = json.load(f)
+
+    if args.prefix:
+        # check if server given can be contacted
+        with open(args.file, "w") as f:
+            json.dump(config_json, f, indent=4)
+    else:
+        print(config_json["prefix"])
+    return 0
+
+
 def convert_authdb_to_ldap_json(args):
     with open(args.authdb_file, "r") as f:
         authdb_json = json.load(f)
 
     new_config = {
         "server": "",  # leave server blank as it is unneeded
-        "endpoints": []
+        "endpoints": [],
+        "prefix": args.base_prefix
     }
 
+    # add some default endpoints like / and bucket_prefix to the file
+
+    base_endpoint = {
+        "endpoint_path": "/",
+        "allowed_attributes": [
+            {
+                "attribute_requirements": {},
+                "permissions": "rl"
+            }
+        ],
+        "allowed_ip_addresses": [],
+        "propogate_permissions": False
+    }
+    new_config["endpoints"].append(base_endpoint)
+
+    if "bucket_prefix" in args:
+        if args.bucket_prefix[0] == "/":
+            prefix = args.bucket_prefix
+        else:
+            prefix = "/" + args.bucket_prefix
+        bucket_prefix_endpoint = {
+            "endpoint_path": prefix,
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": {},
+                    "permissions": "rl"
+                }
+            ],
+            "allowed_ip_addresses": [],
+            "propogate_permissions": False
+        }
+        new_config["endpoints"].append(bucket_prefix_endpoint)
+
     for vo in authdb_json:
+        vo_path = "/" + vo
+        if "bucket_prefix" in args:
+            if args.bucket_prefix[0] == "/":
+                vo_path = args.bucket_prefix + vo_path
+            else:
+                vo_path = "/" + args.bucket_prefix + vo_path
+        vo_endpoint = {
+            "endpoint_path": vo_path,
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": {},
+                    "permissions": "rl"
+                }
+            ],
+            "allowed_ip_addresses": [],
+            "propogate_permissions": False
+        }
+        new_config["endpoints"].append(vo_endpoint)
+
         for bucket in authdb_json[vo]:
-            path = "/" + vo + "/" + bucket
+            path = vo + "/" + bucket
             roles = []
             clientnames = []
             remoteaddrs = []
@@ -511,29 +589,45 @@ def convert_authdb_to_ldap_json(args):
                 "propogate_permissions": True  # it propogates down in old format
             }
 
+            # old format was basically a list of single requirements mapped to
+            # permission strings. We can combine everything by iterating through
+            # everything and placing them in a list corresponding to the permissions,
+            # then construct or conditions per different permission string
+            permissions = {}
+
             for role in roles:
-                attribute_requirement = {
-                    "attribute_requirements": [
-                        {
-                            "attribute": "role",
-                            "value": role
-                        }
-                    ],
-                    "permissions": roles[role]
+                permission_string = roles[role]
+                attribute = {
+                    "attribute": "role",
+                    "value": role
                 }
-                new_endpoint["allowed_attributes"].append(attribute_requirement)
+                if permission_string in permissions:
+                    permissions[permission_string].append(attribute)
+                else:
+                    permissions[permission_string] = [attribute]
 
             for clientname in clientnames:
-                attribute_requirement = {
-                    "attribute_requirements": [
-                        {
-                            "attribute": "clientname",
-                            "value": clientname
-                        }
-                    ],
-                    "permissions": clientnames[clientname]
+                permission_string = clientnames[clientname]
+                attribute = {
+                    "attribute": "clientname",
+                    "value": clientname
                 }
-                new_endpoint["allowed_attributes"].append(attribute_requirement)
+                if permission_string in permissions:
+                    permissions[permission_string].append(attribute)
+                else:
+                    permissions[permission_string] = [attribute]
+
+            for permission in permissions:
+                or_condition = {
+                    "attribute_requirements": {
+                        "or": []
+                    },
+                    "permissions": permission
+                }
+                for attribute in permissions[permission]:
+                    or_condition["attribute_requirements"]["or"].append(attribute)
+
+                new_endpoint["allowed_attributes"].append(or_condition)
 
             for remoteaddr in remoteaddrs:
                 ip = {
@@ -652,7 +746,7 @@ def modify_endpoint(args):
             while True:
                 user_ip_selection = input("Enter a number to choose what to edit/delete: ")
                 try:
-                    if int(user_ip_selection) < index + 1 and int(user_ip_selection) > 0:
+                    if int(user_ip_selection) <= index + 1 and int(user_ip_selection) > 0:
                         break
                     else:
                         print("Please enter a number 1-" + str(index + 1))
@@ -689,7 +783,7 @@ def modify_endpoint(args):
 
         # don't need to select an existing attribute set to add, so do this first
         process_attributes = True
-        if user_attribute_set_command_selection == "3":
+        if user_attribute_set_command_selection == "2":
             attributes = []
             while process_attributes:
                 attribute = input("Enter attribute name: ")
@@ -732,7 +826,7 @@ def modify_endpoint(args):
                 user_attribute_set_selection = input("Enter a number to choose "
                                                      "what attribute set to edit/delete: ")
                 try:
-                    if int(user_attribute_set_selection) < index + 1 and int(user_attribute_set_selection) > 0:
+                    if int(user_attribute_set_selection) <= index + 1 and int(user_attribute_set_selection) > 0:
                         break
                     else:
                         print("Please enter a number 1-" + str(index + 1))
@@ -741,7 +835,7 @@ def modify_endpoint(args):
 
             # delete attribute set
             if user_attribute_set_command_selection == "3":
-                modified_endpoint["allowed_attributes"].pop(int(user_attribute_set_selection - 1))
+                modified_endpoint["allowed_attributes"].pop(int(user_attribute_set_selection) - 1)
 
             # modify attributes or values
             if user_attribute_set_command_selection == "1":
@@ -854,10 +948,17 @@ parser_server = subparsers.add_parser("server", help="Get the name of the LDAP s
 parser_server.add_argument("server", nargs="?", help="Supply a server name to set the LDAP server in the configuration")
 parser_server.set_defaults(func=server)
 
+# parser for prefix command
+parser_server = subparsers.add_parser("prefix", help="Get the federation prefix for DynaFed or provide a new prefix. This will be prepended to all endpoints")
+parser_server.add_argument("prefix", nargs="?", help="Supply a prefix to set the federation prefix in the configuration")
+parser_server.set_defaults(func=server)
+
 # parser for convert command
 parser_convert = subparsers.add_parser("convert", help="Convert an old style AuthDB json file into LDAP config json")
 parser_convert.add_argument("authdb_file", help="Path to AuthDB file to convert to LDAP config")
 parser_convert.add_argument("output_filename", help="Path to where you want to store the converted output file")
+parser_convert.add_argument("--base-prefix", dest="base_prefix", required=True, help="Base federation prefix to be added to config")
+parser_convert.add_argument("--bucket-prefix", dest="bucket_prefix", help="Path prefix to be prepended to all paths (e.g. authentication prefix 'cert'")
 parser_convert.set_defaults(func=convert_authdb_to_ldap_json)
 
 # parser for modify command
