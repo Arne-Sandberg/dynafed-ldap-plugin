@@ -9,7 +9,7 @@
             ], 
             "allowed_attributes": [
                 {
-                    "attribute_requirements": [], 
+                    "attribute_requirements": {}, 
                     "permissions": "rl"
                 }
             ], 
@@ -20,7 +20,7 @@
             "allowed_ip_addresses": [], 
             "allowed_attributes": [
                 {
-                    "attribute_requirements": [], 
+                    "attribute_requirements": {}, 
                     "permissions": "rl"
                 }
             ], 
@@ -31,7 +31,7 @@
             "allowed_ip_addresses": [], 
             "allowed_attributes": [
                 {
-                    "attribute_requirements": [], 
+                    "attribute_requirements": {}, 
                     "permissions": "rl"
                 }
             ], 
@@ -42,7 +42,7 @@
             "allowed_ip_addresses": [], 
             "allowed_attributes": [
                 {
-                    "attribute_requirements": [], 
+                    "attribute_requirements": {}, 
                     "permissions": "rlwd"
                 }
             ], 
@@ -53,21 +53,25 @@
             "allowed_ip_addresses": [], 
             "allowed_attributes": [
                 {
-                    "attribute_requirements": [
-                        {
-                            "attribute": "cn", 
-                            "value": "mnf98541"
-                        }
-                    ], 
+                    "attribute_requirements": {
+                        "or": [
+                            {
+                                "attribute": "cn", 
+                                "value": "mnf98541"
+                            }, 
+                            {
+                                "attribute": "cn", 
+                                "value": "other_username"
+                            }
+                        ]
+                    }, 
                     "permissions": "rlwd"
-                }, 
+                },
                 {
-                    "attribute_requirements": [
-                        {
-                            "attribute": "department", 
-                            "value": "Sc"
-                        }
-                    ], 
+                    "attribute_requirements": {
+                        "attribute": "department", 
+                        "value": "Sc"
+                    }, 
                     "permissions": "rl"
                 }
             ], 
@@ -78,7 +82,7 @@
             "allowed_ip_addresses": [], 
             "allowed_attributes": [
                 {
-                    "attribute_requirements": [], 
+                    "attribute_requirements": {}, 
                     "permissions": "r"
                 }
             ], 
