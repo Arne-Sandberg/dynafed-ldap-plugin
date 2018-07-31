@@ -644,7 +644,6 @@ def add_users(args):
     with open(args.file, "r") as f:
         config_json = json.load(f)
 
-    # TODO: search for existing endpoint
     create_endpoint = False
     endpoint = {}
     for endpoint_i in config_json["endpoints"]:
@@ -689,7 +688,7 @@ def add_users(args):
             rlwd_attribute_condition = allowed_attributes
 
     # do read users first
-    if "read_users" in args and len(args.read_users) > 0:
+    if "read_users" in args and args.read_users:
         # do we add to an existing allowed_attributes entry?
         if rl_attribute_condition:
             endpoint["allowed_attributes"].remove(rl_attribute_condition)
@@ -745,7 +744,7 @@ def add_users(args):
         endpoint["allowed_attributes"].append(rl_attribute_condition)
 
     # now do write users
-    if "write_users" in args and len(args.write_users) > 0:
+    if "write_users" in args and args.write_users:
         # do we add to an existing allowed_attributes entry?
         if rlwd_attribute_condition:
             endpoint["allowed_attributes"].remove(rlwd_attribute_condition)
@@ -832,11 +831,11 @@ parser_add.add_argument("endpoint_path", help="Endpoint path to add authorisatio
 parser_add.set_defaults(func=add_endpoint)
 
 # parser for addusers command
-parser_addusers = subparsers.add_parser("addusers", help="Add a new users to the authorisation file")
+parser_addusers = subparsers.add_parser("addusers", help="Add a new users to an endpoint in the authorisation file")
 parser_addusers.add_argument("endpoint_path", help="Endpoint path to add users to the authorisation info")
 parser_addusers.add_argument("-r, --read-users", dest="read_users", nargs="+", help="Supply usernames for users who should have read and list permissions")
 parser_addusers.add_argument("-w, --write-users", dest="write_users", nargs="+", help="Supply usernames for users who should have read, list, write and delete permissions")
-parser_addusers.add_argument("-u, --username-attr", type=str, dest="username_attr", required=True, help="The name of tha attribute in which the username is stored.")
+parser_addusers.add_argument("-u, --username-attr", type=str, dest="username_attr", required=True, help="The name of the attribute in which the username is stored.")
 parser_addusers.set_defaults(func=add_users)
 
 # parser for remove command
