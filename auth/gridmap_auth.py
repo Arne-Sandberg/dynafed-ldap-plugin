@@ -92,11 +92,9 @@ myauthjson = _AuthJSON()
 def process_condition(condition, clientname):
     # empty list = don't check any attributes, so auto match
     if len(condition) == 0:
-        print("len == 0")
         return True
     if "attribute" in condition:
         # only one attribute to check
-        print("attribute")
         if condition["attribute"] == "clientname" and condition["value"] != clientname:
             return False
         if condition["attribute"] == "role" and (not myauthlist.authenticateUser(clientname) or condition["value"] != myauthlist.getRole(clientname)):
@@ -127,13 +125,6 @@ def process_condition(condition, clientname):
 
 
 def isallowed(clientname="unknown", remoteaddr="nowhere", resource="none", mode="0", fqans=None, keys=None):
-#    print "clientname", clientname
-#    print "remote address", remoteaddr
-#    print "fqans", fqans
-#    print "keys", keys
-#    print "mode", mode
-#    print "resource", resource
-
     result = myauthjson.auth_info_for_path(resource)
     if result is None:
         # failed to match anything
