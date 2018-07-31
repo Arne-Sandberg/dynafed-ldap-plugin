@@ -1,11 +1,12 @@
 {
     "server": "fed.cclrc.ac.uk",
+    "prefix": "/myfed",
     "endpoints": [
         {
-            "endpoint_path": "/myfed",
+            "endpoint_path": "/",
             "allowed_attributes": [
                 {
-                    "attribute_requirements": [],
+                    "attribute_requirements": {},
                     "permissions": "rl"
                 }
             ],
@@ -13,10 +14,10 @@
             "propogate_permissions": false
         },
         {
-            "endpoint_path": "/myfed/shib",
+            "endpoint_path": "/shib",
             "allowed_attributes": [
                 {
-                    "attribute_requirements": [],
+                    "attribute_requirements": {},
                     "permissions": "rl"
                 }
             ],
@@ -24,35 +25,33 @@
             "propogate_permissions": false
         },
         {
-            "endpoint_path": "/myfed/shib/unprotected",
+            "endpoint_path": "/shib/unprotected",
             "allowed_attributes": [
                 {
-                    "attribute_requirements": [],
+                    "attribute_requirements": {},
                     "permissions": "rlwd"
                 }                
             ],
             "allowed_ip_addresses": []
         },
         {
-            "endpoint_path": "/myfed/shib/authorised",
+            "endpoint_path": "/shib/authorised",
             "allowed_attributes": [
                 {
-                    "attribute_requirements": [
-                        {
-                            "attribute": "cn",
-                            "value": "Me Myself And I"
-                        }
-                    ],
+                    "attribute_requirements": {
+                        "attribute": "cn",
+                        "value": "Me Myself And I"
+                    },
                     "permissions": "rlwd"
                 }
             ],
             "allowed_ip_addresses": []
         },
         {
-            "endpoint_path": "/myfed/shib/unauthorised",
+            "endpoint_path": "/shib/unauthorised",
             "allowed_attributes": [
                 {
-                    "attribute_requirements": [],
+                    "attribute_requirements": {},
                     "permissions": "r"
                 }
             ],

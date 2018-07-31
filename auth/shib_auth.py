@@ -37,9 +37,10 @@ class _AuthJSON(object):
     def __init__(self):
         with open("/etc/ugr/conf.d/shib_auth.json", "r") as f:
             self.auth_dict = json.load(f)
+            prefix = self.auth_dict["prefix"]
             # prepopulate path list so we don't repeatedly parse it
             for endpoint in self.auth_dict["endpoints"]:
-                self.path_list.append(endpoint["endpoint_path"])
+                self.path_list.append(strip_end(strip_end(prefix, "/") + endpoint["endpoint_path"], "/"))
 
     # we want to apply the auth that matches the path most closely,
     # so we have to search the dict for path prefixes that match
@@ -49,6 +50,7 @@ class _AuthJSON(object):
     def auth_info_for_path(self, path):
         stripped_path = strip_end(path, "/")
         split_path = stripped_path.split("/")
+        prefix = self.auth_dict["prefix"]
         i = 0
         while i < len(split_path):
             p = ""
@@ -61,13 +63,49 @@ class _AuthJSON(object):
 
             if p in self.path_list:
                 for endpoint in self.auth_dict["endpoints"]:
-                    if endpoint["endpoint_path"] == p:
+                    if strip_end(strip_end(prefix, "/") + endpoint["endpoint_path"], "/") == p:
                         return {"path": p, "auth_info": endpoint}
             i += 1
 
 
 # Initialize a global instance of the authlist class, to be used inside the isallowed() function
 myauthjson = _AuthJSON()
+
+
+# return true or false based on condition
+def process_condition(condition, keys):
+    # empty list = don't check any attributes, so auto match
+    if len(condition) == 0:
+        return True
+    if "attribute" in condition:
+        # only one attribute to check
+        # we prepended env.SHIB_ to all attributes in shib config so lcgdm-dav could parse them out
+        # so we need to add env.SHIB_ to attributes from JSON file to match them
+        if "env.SHIB_" + condition["attribute"] not in keys or keys["env.SHIB_" + condition["attribute"]] != condition["value"]:
+            return False
+        else:
+            return True
+    if "or" in condition:
+        # need to match one of anything in the list, so moment we match something
+        # return true, if we finish without matching nothing matched so return
+        # false
+        match_or = condition["or"]
+        for or_condition in match_or:
+            match = process_condition(or_condition, keys)
+            if match:
+                return True
+        return False
+    if "and" in condition:
+        # need to match everything in the list, so moment we don't match return
+        # false, if we escape without returning false then everything must
+        # have been true so return true
+        match_and = condition["and"]
+        for and_condition in match_and:
+            match = process_condition(and_condition, keys)
+            if not match:
+                return False
+        return True
+    # TODO: extend to other operators if we need them?
 
 
 # The main function that has to be invoked from ugr to determine if a request
@@ -97,20 +135,13 @@ def isallowed(clientname="unknown", remoteaddr="nowhere", resource="none", mode=
             return 0
 
     # if shib auth was successful we should always have something here, but just in case...
-    if len(keys) == 0:
+    if not keys:
         return 1
 
-    # we prepended env.SHIB_ to all attributes in shib config so lcgdm-dav could parse them out
-    # so we need to add env.SHIB_ to attributes from JSON file to match them
-
     for item in auth_info["allowed_attributes"]:
-        # assume True (meaning empty list matches)
-        # if we get an attribute that doesn't match then we fail this set of attributes
-        match = True
-        for attribute in item["attribute_requirements"]:
-            print attribute
-            if "env.SHIB_" + attribute["attribute"] not in keys or keys["env.SHIB_" + attribute["attribute"]] != attribute["value"]:
-                match = False
+        # use process_condition to check whether we match or not
+        condition = item["attribute_requirements"]
+        match = process_condition(condition, keys)
 
         if match and mode in item["permissions"]:
             # for testing, so we can see how long the plugin takes
