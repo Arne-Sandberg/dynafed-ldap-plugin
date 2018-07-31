@@ -560,7 +560,7 @@ def convert_authdb_to_ldap_json(args):
         new_config["endpoints"].append(vo_endpoint)
 
         for bucket in authdb_json[vo]:
-            path = vo + "/" + bucket
+            path = vo_path + "/" + bucket
             roles = []
             clientnames = []
             remoteaddrs = []
@@ -804,6 +804,7 @@ def add_users(args):
 
     return 0
 
+
 # top level argument parser
 parser = argparse.ArgumentParser()
 
@@ -858,7 +859,7 @@ parser_convert = subparsers.add_parser("convert", help="Convert an old style Aut
 parser_convert.add_argument("authdb_file", help="Path to AuthDB file to convert to LDAP config")
 parser_convert.add_argument("output_filename", help="Path to where you want to store the converted output file")
 parser_convert.add_argument("--base-prefix", dest="base_prefix", required=True, help="Base federation prefix to be added to config")
-parser_convert.add_argument("--bucket-prefix", dest="bucket_prefix", help="Path prefix to be prepended to all paths (e.g. authentication prefix 'cert'")
+parser_convert.add_argument("--bucket-prefix", dest="bucket_prefix", help="Path prefix to be prepended to all paths (e.g. authentication prefix 'x509'")
 parser_convert.set_defaults(func=convert_authdb_to_ldap_json)
 
 if __name__ == "__main__":
