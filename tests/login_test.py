@@ -134,15 +134,15 @@ class CertificateAuthSuccessTest(unittest.TestCase):
 
     def test_login(self):
         driver = self.driver
-        driver.get("https://" + self.server + "/myfed/cert/test/unprotected")
+        driver.get("https://" + self.server + "/myfed/x509/test/unprotected")
 
         self.assertIn("/C=UK/O=eScience/OU=CLRC/L=RAL/CN=louise davies", driver.page_source)
 
     def test_see_all_buckets(self):
         driver = self.driver
-        driver.get("https://" + self.server + "/myfed/cert")
+        driver.get("https://" + self.server + "/myfed/x509")
 
-        WebDriverWait(driver, 5).until(EC.title_is("/myfed/cert/"))
+        WebDriverWait(driver, 5).until(EC.title_is("/myfed/x509/"))
         self.assertIn("atlas", driver.page_source)
         self.assertIn("dteam", driver.page_source)
         self.assertIn("enmr", driver.page_source)
@@ -154,21 +154,21 @@ class CertificateAuthSuccessTest(unittest.TestCase):
 
     def test_access_allowed_simple(self):
         driver = self.driver
-        driver.get("https://" + self.server + "/myfed/cert/test/authorised")
+        driver.get("https://" + self.server + "/myfed/x509/test/authorised")
 
-        WebDriverWait(driver, 5).until(EC.title_is("/myfed/cert/test/authorised/"))
+        WebDriverWait(driver, 5).until(EC.title_is("/myfed/x509/test/authorised/"))
         self.assertIn("Smudge.jpg", driver.page_source)
 
     def test_access_allowed(self):
         driver = self.driver
-        driver.get("https://" + self.server + "/myfed/cert/enmr/ccp4-data")
+        driver.get("https://" + self.server + "/myfed/x509/enmr/ccp4-data")
 
-        WebDriverWait(driver, 5).until(EC.title_is("/myfed/cert/enmr/ccp4-data/"))
+        WebDriverWait(driver, 5).until(EC.title_is("/myfed/x509/enmr/ccp4-data/"))
         self.assertIn("Powered by LCGDM-DAV", driver.page_source)
 
     def test_access_denied_simple(self):
         driver = self.driver
-        driver.get("https://" + self.server + "/myfed/cert/test/unauthorised")
+        driver.get("https://" + self.server + "/myfed/x509/test/unauthorised")
 
         WebDriverWait(driver, 5).until(EC.title_is("403 Forbidden"))
 
@@ -176,7 +176,7 @@ class CertificateAuthSuccessTest(unittest.TestCase):
 
     def test_access_denied(self):
         driver = self.driver
-        driver.get("https://" + self.server + "/myfed/cert/enmr/ccp4-jobs")
+        driver.get("https://" + self.server + "/myfed/x509/enmr/ccp4-jobs")
 
         WebDriverWait(driver, 5).until(EC.title_is("403 Forbidden"))
 
@@ -196,7 +196,7 @@ class CertificateAuthFailureTest(unittest.TestCase):
 
     def test_login_fail(self):
         driver = self.driver
-        driver.get("https://" + self.server + "/myfed/cert/test/authorised")
+        driver.get("https://" + self.server + "/myfed/x509/test/authorised")
 
         WebDriverWait(driver, 5).until(EC.title_is("403 Forbidden"))
 
