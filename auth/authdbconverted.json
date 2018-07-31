@@ -559,7 +559,30 @@
             ], 
             "endpoint_path": "/x509/enmr/ccp4-data", 
             "propogate_permissions": true
+        },
+        {
+            "allowed_ip_addresses": [], 
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": [], 
+                    "permissions": "rl"
+                }
+            ], 
+            "endpoint_path": "/x509/ska", 
+            "propogate_permissions": false
+        },
+        {
+            "allowed_ip_addresses": [], 
+            "allowed_attributes": [
+                {
+                    "attribute_requirements": [], 
+                    "permissions": "rl"
+                }
+            ], 
+            "endpoint_path": "/x509/prominence", 
+            "propogate_permissions": false
         }
-    ], 
+    ],
+    
     "server": ""
 }
