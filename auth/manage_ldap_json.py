@@ -298,15 +298,18 @@ def prompt_permissions(message):
 
 def create_attribute_condition():
     while True:
-        user_selection = input("\nWould you like to create an OR condition, AND condition or specify an attribute-value pair? \n"
+        user_selection = input("\nWould you like to create an OR condition, AND condition or specify an attribute-value pair? Or would you like to stop adding attribute conditions? \n"
                                "1) OR\n"
                                "2) AND\n"
-                               "3) Attribute-value pair\n")
-        if (user_selection != "1" or user_selection != "2" or
-                user_selection != "3"):
+                               "3) Attribute-value pair\n"
+                               "4) Exit\n")
+        if (user_selection == "1" or user_selection == "2" or
+                user_selection == "3"):
             break
+        elif user_selection == "4":
+            return {}
         else:
-            print("Please enter a number 1-3")
+            print("Please enter a number 1-4")
 
     # OR condition
     if user_selection == "1":
@@ -328,21 +331,31 @@ def create_attribute_condition():
             "attribute": "",
             "value": ""
         }
-        # if the user is specifying an attribute
+        # if the user is specifying an attribute, prompt for name and value
+        # can't have empty attribute name
+        while not condition["attribute"]:
+            attribute = input("Enter attribute name: ")
+            condition["attribute"] = attribute
+
+        value = input("Enter attribute value: ")
+        condition["value"] = value
+
         # we can't ask for more conditions, so return
         return condition
 
     # OR and AND conditions need to ask for sub conditions
     if user_selection == "1" or "user_selection" == 2:
-        print("Please add an attribute condition to this " + operation + "condition")
+        print("\n\nPlease add an attribute condition to this " + operation.upper() + " condition")
 
         add_condition = True
         while add_condition:
             # recurse and prompt if they want to add another condition at this level
             attribute_condition = create_attribute_condition()
-            condition[operation].append(attribute_condition)
-            add_condition = prompt_bool("Would you like to add another attribute condition to this " +
-                                        operation + "condition? (Y/n)")
+            # need to check for not {} i.e they selected exit
+            if attribute_condition:
+                condition[operation].append(attribute_condition)
+                add_condition = prompt_bool("Would you like to add another attribute condition to this " +
+                                            operation.upper() + " condition? (Y/n)")
 
     return condition
 
@@ -407,9 +420,9 @@ def add_endpoint(args):
         new_endpoint["allowed_attributes"].append({"attribute_requirements": attribute_condition,
                                                    "permissions": permissions})
 
-    process_attributes = prompt_bool("Would you like to specify another "
-                                     "attribute condition with different "
-                                     "permissions for this endpoint? (Y/n)")
+        process_attributes = prompt_bool("Would you like to specify another "
+                                         "attribute condition with different "
+                                         "permissions for this endpoint? (Y/n)")
 
     print(json.dumps(new_endpoint, indent=4))
 
@@ -864,5 +877,9 @@ parser_convert.add_argument("--bucket-prefix", dest="bucket_prefix", help="Path 
 parser_convert.set_defaults(func=convert_authdb_to_ldap_json)
 
 if __name__ == "__main__":
-    args = parser.parse_args()
-    args.func(args)
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
+    else:
+        args = parser.parse_args()
+        args.func(args)
