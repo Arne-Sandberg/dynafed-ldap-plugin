@@ -827,16 +827,22 @@ def create_echo_bucket(args):
                                aws_access_key_id=args.public_key,
                                aws_secret_access_key=args.private_key)
     s3_client.create_bucket(Bucket=args.name)
-    cors_rule = {
-        "CORSRules": [
-            {
-                "AllowedMethods": ["GET", "PUT"],
-                "AllowedOrigins": ["https://vm28.nubes.stfc.ac.uk"],
-                "MaxAgeSeconds": 3000
-            }
-        ]
-    }
-    s3_client.put_bucket_cors(Bucket=args.name, CORSConfiguration=cors_rule)
+
+    # for now, dynafed_server is optional since we don't use this function anyway
+    # however, if you do start to use this function, you should probably force
+    # required = True in parser_new for dynafed_server option, and then remove
+    # this check
+    if args.dynafed_server:
+        cors_rule = {
+            "CORSRules": [
+                {
+                    "AllowedMethods": ["GET", "PUT"],
+                    "AllowedOrigins": [args.dynafed_server],
+                    "MaxAgeSeconds": 3000
+                }
+            ]
+        }
+        s3_client.put_bucket_cors(Bucket=args.name, CORSConfiguration=cors_rule)
 
 
 def create_endpoint_config(args):
@@ -954,6 +960,7 @@ def create_new_bucket(args):
     create_endpoint_config(args)
     update_access_config(args)
 
+
 # top level argument parser
 parser = argparse.ArgumentParser()
 
@@ -989,6 +996,7 @@ parser_new.add_argument("-r, --read-users", dest="read_users", nargs="+", help="
 parser_new.add_argument("-w, --write-users", dest="write_users", nargs="+", help="Supply usernames for users who should have read, list, write and delete permissions")
 parser_new.add_argument("-u, --username-attr", type=str, dest="username_attr", required=True, help="The name of the attribute in which the username is stored.")
 parser_new.add_argument("-c, --ceph-server", type=str, required=True, dest="ceph_server", help="URL of the underlying ceph server")
+parser_new.add_argument("-d, --dynafed-server", type=str, dest="dynafed_server", help="URL of the DynaFed server")
 parser_new.add_argument("--public-key", type=str, required=True, dest="public_key", help="AWS access key id")
 parser_new.add_argument("--private-key", type=str, required=True, dest="private_key", help="AWS secret access key")
 parser_new.set_defaults(func=create_new_bucket)
