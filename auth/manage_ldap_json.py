@@ -827,6 +827,16 @@ def create_echo_bucket(args):
                                aws_access_key_id=args.public_key,
                                aws_secret_access_key=args.private_key)
     s3_client.create_bucket(Bucket=args.name)
+    cors_rule = {
+        "CORSRules": [
+            {
+                "AllowedMethods": ["GET", "PUT"],
+                "AllowedOrigins": ["https://vm28.nubes.stfc.ac.uk"],
+                "MaxAgeSeconds": 3000
+            }
+        ]
+    }
+    s3_client.put_bucket_cors(Bucket=args.name, CORSConfiguration=cors_rule)
 
 
 def create_endpoint_config(args):
