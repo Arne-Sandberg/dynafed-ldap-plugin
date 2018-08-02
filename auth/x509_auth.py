@@ -3,7 +3,7 @@
 
 # Authorization plugin that uses an authDB and grid-mapfile
 # usage:
-# gridmap_auth.py <clientname> <remoteaddr> <fqan1> .. <fqanN>
+# x509_auth.py <clientname> <remoteaddr> <fqan1> .. <fqanN>
 #
 # Return value means:
 # 0 --> access is GRANTED
