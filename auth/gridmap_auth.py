@@ -50,7 +50,7 @@ class _AuthJSON(object):
     path_list = []
 
     def __init__(self):
-        with open("/etc/grid-security/authdb.json", "r") as f:
+        with open("//etc/ugr/conf.d/x509_auth.json", "r") as f:
             self.auth_dict = json.load(f)
             prefix = self.auth_dict["prefix"]
             # prepopulate path list so we don't repeatedly parse it
