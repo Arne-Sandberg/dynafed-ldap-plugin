@@ -3,10 +3,10 @@ from __future__ import print_function, unicode_literals
 import json
 import argparse
 import ldap3
-from tabulate import tabulate
 import sys
 import os
 import socket
+import boto3
 
 # needed for python 2 and 3 compabilility to check str types
 try:
@@ -819,6 +819,131 @@ def add_users(args):
     return 0
 
 
+def create_echo_bucket(args):
+    session = boto3.session.Session()
+    # TODO: how to authenticate with S3? whose credentials do I use? should we create a "DynaFed" user?
+    s3_client = session.client(service_name="s3",
+                               endpoint_url=args.ceph_server,
+                               aws_access_key_id=args.public_key,
+                               aws_secret_access_key=args.private_key)
+    s3_client.create_bucket(Bucket=args.name)
+
+
+def create_endpoint_config(args):
+    endpoint_config = [
+        "# Plugin for " + args.name + " bucket (ldap)\n",
+        "glb.locplugin[]: /usr/lib64/ugr/libugrlocplugin_s3.so " + args.name + "-ldap 15 " + args.ceph_server + "/" + args.name + "\n",
+        "locplugin." + args.name + "-ldap.xlatepfx: /ldap/" + args.name + " /\n",
+        "locplugin." + args.name + "-ldap.s3.priv_key: " + args.private_key + "\n",
+        "locplugin." + args.name + "-ldap.s3.pub_key: " + args.public_key + "\n",
+        "locplugin." + args.name + "-ldap.s3.writable: true\n",
+        "locplugin." + args.name + "-ldap.s3.alternate: true\n",
+        "locplugin." + args.name + "-ldap.s3.ca_path: /etc/grid-security/certificates/\n",
+        "locplugin." + args.name + "-ldap.s3.region: uk\n",
+        "\n",
+        "# Plugin for " + args.name + " bucket (x509)\n",
+        "glb.locplugin[]: /usr/lib64/ugr/libugrlocplugin_s3.so " + args.name + "-x509 15 " + args.ceph_server + "/" + args.name + "\n",
+        "locplugin." + args.name + "-x509.xlatepfx: /x509/" + args.name + " /\n",
+        "locplugin." + args.name + "-x509.s3.priv_key: " + args.private_key + "\n",
+        "locplugin." + args.name + "-x509.s3.pub_key: " + args.public_key + "\n",
+        "locplugin." + args.name + "-x509.s3.writable: true\n",
+        "locplugin." + args.name + "-x509.s3.alternate: true\n",
+        "locplugin." + args.name + "-x509.s3.ca_path: /etc/grid-security/certificates/\n",
+        "locplugin." + args.name + "-x509.s3.region: uk\n",
+        "\n",
+    ]
+    with open("/etc/ugr/conf.d/" + args.name + ".conf", "w") as f:
+        f.writelines(endpoint_config)
+
+
+def update_access_config(args):
+    ldap_new_endpoint = {
+        "endpoint_path": "/ldap/" + args.name,
+        "allowed_attributes": [],
+        "allowed_ip_addresses": [],
+        "propogate_permissions": True
+    }
+
+    x509_new_endpoint = {
+        "endpoint_path": "/x509/" + args.name,
+        "allowed_attributes": [],
+        "allowed_ip_addresses": [],
+        "propogate_permissions": True
+    }
+
+    read_users_config = {
+        "attribute_requirements": {
+            "or": [],
+        },
+        "permissions": "rl"
+    }
+    for read_user in args.read_users:
+        attribute = {
+            "attribute": args.username_attr,
+            "value": read_user
+        }
+        read_users_config["attribute_requirements"]["or"].append(attribute)
+
+    ldap_new_endpoint["allowed_attributes"].append(read_users_config)
+    x509_new_endpoint["allowed_attributes"].append(read_users_config)
+
+    write_users_config = {
+        "attribute_requirements": {
+            "or": [],
+        },
+        "permissions": "rlwd"
+    }
+    for write_user in args.write_users:
+        attribute = {
+            "attribute": args.username_attr,
+            "value": write_user
+        }
+        write_users_config["attribute_requirements"]["or"].append(attribute)
+
+    ldap_new_endpoint["allowed_attributes"].append(write_users_config)
+    x509_new_endpoint["allowed_attributes"].append(write_users_config)
+
+    if args.ldap_config_file:
+        with open(args.ldap_config_file, "r") as ldap_file:
+            ldap_config = json.load(ldap_file)
+            ldap_config["endpoints"].append(ldap_new_endpoint)
+
+        with open(args.ldap_config_file, "w") as ldap_file:
+            json.dump(ldap_config, ldap_file, indent=4)
+
+    if args.x509_config_file:
+        with open(args.x509_config_file, "r") as x509_file:
+            x509_config = json.load(x509_file)
+            x509_config["endpoints"].append(x509_new_endpoint)
+
+        with open(args.x509_config_file, "w") as x509_file:
+            json.dump(x509_config, x509_file, indent=4)
+
+
+def create_new_bucket(args):
+    # check config files are valid first
+    args.surpress_verify_output = True
+    ldap_args = args
+    ldap_args.file = ldap_args.ldap_config_file
+    if verify(args) != 0:
+        # restore stdout
+        sys.stdout = sys.__stdout__
+        print("LDAP config file not valid, please use the verify function to debug")
+        return 1
+
+    x509_args = args
+    x509_args.file = x509_args.x509_config_file
+    if verify(args) != 0:
+        # restore stdout
+        sys.stdout = sys.__stdout__
+        print("X509 file not valid, please use the verify function to debug")
+        return 1
+
+    # TODO: do we create echo bucket ourselves, or assume we have a bucket created for us?
+    #create_echo_bucket(args)
+    create_endpoint_config(args)
+    update_access_config(args)
+
 # top level argument parser
 parser = argparse.ArgumentParser()
 
@@ -844,6 +969,19 @@ parser_info.set_defaults(func=endpoint_info)
 parser_add = subparsers.add_parser("add", help="Add a new endpoint to the authorisation file")
 parser_add.add_argument("endpoint_path", help="Endpoint path to add authorisation info for")
 parser_add.set_defaults(func=add_endpoint)
+
+# parser for new command
+parser_new = subparsers.add_parser("new", help="Create a new DynaFed bucket and generate all the configuration for it")
+parser_new.add_argument("name", type=str, help="Name of the DynaFed bucket you would like to create")
+parser_new.add_argument("-l, --ldap-config-file", type=str, default="./ldap_auth.json", dest="ldap_config_file", help="Location of the LDAP JSON configuration file to update. Defaults to ./ldap_auth.json")
+parser_new.add_argument("-x, --x509-config-file", type=str, default="./x509_auth.json", dest="x509_config_file", help="Location of the x509 JSON configuration file to update. Defaults to ./x509_auth.json")
+parser_new.add_argument("-r, --read-users", dest="read_users", nargs="+", help="Supply usernames for users who should have read and list permissions")
+parser_new.add_argument("-w, --write-users", dest="write_users", nargs="+", help="Supply usernames for users who should have read, list, write and delete permissions")
+parser_new.add_argument("-u, --username-attr", type=str, dest="username_attr", required=True, help="The name of the attribute in which the username is stored.")
+parser_new.add_argument("-c, --ceph-server", type=str, required=True, dest="ceph_server", help="URL of the underlying ceph server")
+parser_new.add_argument("--public-key", type=str, required=True, dest="public_key", help="AWS access key id")
+parser_new.add_argument("--private-key", type=str, required=True, dest="private_key", help="AWS secret access key")
+parser_new.set_defaults(func=create_new_bucket)
 
 # parser for addusers command
 parser_addusers = subparsers.add_parser("addusers", help="Add a new users to an endpoint in the authorisation file")
