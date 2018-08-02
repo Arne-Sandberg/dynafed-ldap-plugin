@@ -564,7 +564,7 @@
             "allowed_ip_addresses": [], 
             "allowed_attributes": [
                 {
-                    "attribute_requirements": [], 
+                    "attribute_requirements": {}, 
                     "permissions": "rl"
                 }
             ], 
@@ -575,7 +575,7 @@
             "allowed_ip_addresses": [], 
             "allowed_attributes": [
                 {
-                    "attribute_requirements": [], 
+                    "attribute_requirements": {}, 
                     "permissions": "rl"
                 }
             ], 
