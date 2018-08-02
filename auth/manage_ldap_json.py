@@ -514,10 +514,16 @@ def convert_authdb_to_ldap_json(args):
     with open(args.authdb_file, "r") as f:
         authdb_json = json.load(f)
 
+    # add a leading slash if the user didn't provide one
+    if args.base_prefix[0] == "/":
+        base_prefix = args.base_prefix
+    else:
+        base_prefix = "/" + args.base_prefix
+
     new_config = {
         "server": "",  # leave server blank as it is unneeded
         "endpoints": [],
-        "prefix": args.base_prefix
+        "prefix": base_prefix
     }
 
     # add some default endpoints like / and bucket_prefix to the file
