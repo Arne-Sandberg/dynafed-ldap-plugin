@@ -893,7 +893,13 @@ def update_access_config(args):
         "propogate_permissions": True
     }
 
-    read_users_config = {
+    ldap_read_users_config = {
+        "attribute_requirements": {
+            "or": [],
+        },
+        "permissions": "rl"
+    }
+    x509_read_users_config = {
         "attribute_requirements": {
             "or": [],
         },
@@ -904,12 +910,23 @@ def update_access_config(args):
             "attribute": args.username_attr,
             "value": read_user
         }
-        read_users_config["attribute_requirements"]["or"].append(attribute)
+        ldap_read_users_config["attribute_requirements"]["or"].append(attribute)
+        attribute = {
+            "attribute": "clientname",
+            "value": read_user
+        }
+        x509_read_users_config["attribute_requirements"]["or"].append(attribute)
 
-    ldap_new_endpoint["allowed_attributes"].append(read_users_config)
-    x509_new_endpoint["allowed_attributes"].append(read_users_config)
+    ldap_new_endpoint["allowed_attributes"].append(ldap_read_users_config)
+    x509_new_endpoint["allowed_attributes"].append(x509_read_users_config)
 
-    write_users_config = {
+    ldap_write_users_config = {
+        "attribute_requirements": {
+            "or": [],
+        },
+        "permissions": "rlwd"
+    }
+    x509_write_users_config = {
         "attribute_requirements": {
             "or": [],
         },
@@ -918,12 +935,17 @@ def update_access_config(args):
     for write_user in args.write_users:
         attribute = {
             "attribute": args.username_attr,
-            "value": write_user
+            "value": read_user
         }
-        write_users_config["attribute_requirements"]["or"].append(attribute)
+        ldap_write_users_config["attribute_requirements"]["or"].append(attribute)
+        attribute = {
+            "attribute": "clientname",
+            "value": read_user
+        }
+        x509_write_users_config["attribute_requirements"]["or"].append(attribute)
 
-    ldap_new_endpoint["allowed_attributes"].append(write_users_config)
-    x509_new_endpoint["allowed_attributes"].append(write_users_config)
+    ldap_new_endpoint["allowed_attributes"].append(ldap_write_users_config)
+    x509_new_endpoint["allowed_attributes"].append(x509_write_users_config)
 
     if args.ldap_config_file:
         with open(args.ldap_config_file, "r") as ldap_file:
