@@ -502,7 +502,7 @@ def prefix(args):
         config_json = json.load(f)
 
     if args.prefix:
-        # check if server given can be contacted
+        config_json["prefix"] = args.prefix
         with open(args.file, "w") as f:
             json.dump(config_json, f, indent=4)
     else:
@@ -853,80 +853,46 @@ def create_echo_bucket(args):
 
 def create_endpoint_config(args):
     endpoint_config = [
-        "# Plugin for " + args.name + " bucket (ldap)\n",
+        "# Plugin for " + args.name + " bucket (" + args.auth + ")\n",
         "glb.locplugin[]: /usr/lib64/ugr/libugrlocplugin_s3.so " + args.name + "-ldap 15 " + args.ceph_server + "/" + args.name + "\n",
-        "locplugin." + args.name + "-ldap.xlatepfx: /ldap/" + args.name + " /\n",
-        "locplugin." + args.name + "-ldap.s3.priv_key: " + args.private_key + "\n",
-        "locplugin." + args.name + "-ldap.s3.pub_key: " + args.public_key + "\n",
-        "locplugin." + args.name + "-ldap.s3.writable: true\n",
-        "locplugin." + args.name + "-ldap.s3.alternate: true\n",
-        "locplugin." + args.name + "-ldap.s3.ca_path: /etc/grid-security/certificates/\n",
-        "locplugin." + args.name + "-ldap.s3.region: uk\n",
-        "\n",
-        "# Plugin for " + args.name + " bucket (x509)\n",
-        "glb.locplugin[]: /usr/lib64/ugr/libugrlocplugin_s3.so " + args.name + "-x509 15 " + args.ceph_server + "/" + args.name + "\n",
-        "locplugin." + args.name + "-x509.xlatepfx: /x509/" + args.name + " /\n",
-        "locplugin." + args.name + "-x509.s3.priv_key: " + args.private_key + "\n",
-        "locplugin." + args.name + "-x509.s3.pub_key: " + args.public_key + "\n",
-        "locplugin." + args.name + "-x509.s3.writable: true\n",
-        "locplugin." + args.name + "-x509.s3.alternate: true\n",
-        "locplugin." + args.name + "-x509.s3.ca_path: /etc/grid-security/certificates/\n",
-        "locplugin." + args.name + "-x509.s3.region: uk\n",
-        "\n",
+        "locplugin." + args.name + "-" + args.auth + ".xlatepfx: /" + args.auth + "/" + args.name + " /\n",
+        "locplugin." + args.name + "-" + args.auth + ".s3.priv_key: " + args.private_key + "\n",
+        "locplugin." + args.name + "-" + args.auth + ".s3.pub_key: " + args.public_key + "\n",
+        "locplugin." + args.name + "-" + args.auth + ".s3.writable: true\n",
+        "locplugin." + args.name + "-" + args.auth + ".s3.alternate: true\n",
+        "locplugin." + args.name + "-" + args.auth + ".s3.ca_path: /etc/grid-security/certificates/\n",
+        "locplugin." + args.name + "-" + args.auth + ".s3.region: uk\n",
+        "\n"
     ]
-    with open("/etc/ugr/conf.d/" + args.name + ".conf", "w") as f:
+    with open("/etc/ugr/conf.d/" + args.name + ".conf", "a") as f:
         f.writelines(endpoint_config)
 
 
 def update_access_config(args):
-    ldap_new_endpoint = {
-        "endpoint_path": "/ldap/" + args.name,
+    new_endpoint = {
+        "endpoint_path": "/" + args.auth + "/" + args.name,
         "allowed_attributes": [],
         "allowed_ip_addresses": [],
         "propogate_permissions": True
     }
 
-    x509_new_endpoint = {
-        "endpoint_path": "/x509/" + args.name,
-        "allowed_attributes": [],
-        "allowed_ip_addresses": [],
-        "propogate_permissions": True
+    read_users_config = {
+        "attribute_requirements": {
+            "or": [],
+        },
+        "permissions": "rl"
     }
 
-    ldap_read_users_config = {
-        "attribute_requirements": {
-            "or": [],
-        },
-        "permissions": "rl"
-    }
-    x509_read_users_config = {
-        "attribute_requirements": {
-            "or": [],
-        },
-        "permissions": "rl"
-    }
     for read_user in args.read_users:
         attribute = {
             "attribute": args.username_attr,
             "value": read_user
         }
-        ldap_read_users_config["attribute_requirements"]["or"].append(attribute)
-        attribute = {
-            "attribute": "clientname",
-            "value": read_user
-        }
-        x509_read_users_config["attribute_requirements"]["or"].append(attribute)
+        read_users_config["attribute_requirements"]["or"].append(attribute)
 
-    ldap_new_endpoint["allowed_attributes"].append(ldap_read_users_config)
-    x509_new_endpoint["allowed_attributes"].append(x509_read_users_config)
+    new_endpoint["allowed_attributes"].append(read_users_config)
 
-    ldap_write_users_config = {
-        "attribute_requirements": {
-            "or": [],
-        },
-        "permissions": "rlwd"
-    }
-    x509_write_users_config = {
+    write_users_config = {
         "attribute_requirements": {
             "or": [],
         },
@@ -937,50 +903,43 @@ def update_access_config(args):
             "attribute": args.username_attr,
             "value": read_user
         }
-        ldap_write_users_config["attribute_requirements"]["or"].append(attribute)
-        attribute = {
-            "attribute": "clientname",
-            "value": read_user
-        }
-        x509_write_users_config["attribute_requirements"]["or"].append(attribute)
+        write_users_config["attribute_requirements"]["or"].append(attribute)
 
-    ldap_new_endpoint["allowed_attributes"].append(ldap_write_users_config)
-    x509_new_endpoint["allowed_attributes"].append(x509_write_users_config)
+    new_endpoint["allowed_attributes"].append(write_users_config)
 
-    if args.ldap_config_file:
-        with open(args.ldap_config_file, "r") as ldap_file:
-            ldap_config = json.load(ldap_file)
-            ldap_config["endpoints"].append(ldap_new_endpoint)
+    with open(args.file, "r") as f:
+        config = json.load(f)
+        config["endpoints"].append(new_endpoint)
 
-        with open(args.ldap_config_file, "w") as ldap_file:
-            json.dump(ldap_config, ldap_file, indent=4)
-
-    if args.x509_config_file:
-        with open(args.x509_config_file, "r") as x509_file:
-            x509_config = json.load(x509_file)
-            x509_config["endpoints"].append(x509_new_endpoint)
-
-        with open(args.x509_config_file, "w") as x509_file:
-            json.dump(x509_config, x509_file, indent=4)
+    with open(args.file, "w") as f:
+        json.dump(config, f, indent=4)
 
 
-def create_new_bucket(args):
-    # check config files are valid first
+def create_new_ldap_bucket(args):
+    # check config file is valid first
     args.surpress_verify_output = True
-    ldap_args = args
-    ldap_args.file = ldap_args.ldap_config_file
     if verify(args) != 0:
         # restore stdout
         sys.stdout = sys.__stdout__
         print("LDAP config file not valid, please use the verify function to debug")
         return 1
 
-    x509_args = args
-    x509_args.file = x509_args.x509_config_file
+    # TODO: do we create echo bucket ourselves, or assume we have a bucket created for us?
+    #create_echo_bucket(args)
+    create_endpoint_config(args)
+    update_access_config(args)
+
+
+def create_new_x509_bucket(args):
+    # since we're using X509, username_attr is always clientname
+    args.username_attr = "clientname"
+
+    # check config file is valid first
+    args.surpress_verify_output = True
     if verify(args) != 0:
         # restore stdout
         sys.stdout = sys.__stdout__
-        print("X509 file not valid, please use the verify function to debug")
+        print("X509 config file not valid, please use the verify function to debug")
         return 1
 
     # TODO: do we create echo bucket ourselves, or assume we have a bucket created for us?
@@ -993,44 +952,59 @@ def create_new_bucket(args):
 parser = argparse.ArgumentParser()
 
 # is this default okay or mark it as a required option?
-parser.add_argument("-f, --file", type=str, default="./ldap_auth.json", dest="file", help="Location of the JSON configuration file to act on. Defaults to ./ldap_auth.json")
 subparsers = parser.add_subparsers(title="subcommands", description="Functions that can be performed on the JSON file")
 
 # parser for verify command
 parser_verify = subparsers.add_parser("verify", help="Verify that the JSON file is valid.")
+parser_verify.add_argument("-f, --file", type=str, required=True, dest="file", help="Location of the JSON configuration file to act on.")
 parser_verify.add_argument("--surpress-verify-output", action="store_true", help=argparse.SUPPRESS)  # hidden option to tell us to surpress output
 parser_verify.set_defaults(func=verify)
 
 # parser for list command
 parser_list = subparsers.add_parser("list", help="List all endpoints in file")
+parser_list.add_argument("-f, --file", type=str, required=True, dest="file", help="Location of the JSON configuration file to act on.")
 parser_list.set_defaults(func=list_endpoints)
 
 # parser for info command
 parser_info = subparsers.add_parser("info", help="Get the configuration information for an endpoint")
 parser_info.add_argument("endpoint_path", help="Endpoint path to get info on")
+parser_info.add_argument("-f, --file", type=str, required=True, dest="file", help="Location of the JSON configuration file to act on.")
 parser_info.set_defaults(func=endpoint_info)
 
 # parser for add command
 parser_add = subparsers.add_parser("add", help="Add a new endpoint to the authorisation file")
 parser_add.add_argument("endpoint_path", help="Endpoint path to add authorisation info for")
+parser_add.add_argument("-f, --file", type=str, required=True, dest="file", help="Location of the JSON configuration file to act on.")
 parser_add.set_defaults(func=add_endpoint)
 
-# parser for new command
-parser_new = subparsers.add_parser("new", help="Create a new DynaFed bucket and generate all the configuration for it")
-parser_new.add_argument("name", type=str, help="Name of the DynaFed bucket you would like to create")
-parser_new.add_argument("-l, --ldap-config-file", type=str, default="./ldap_auth.json", dest="ldap_config_file", help="Location of the LDAP JSON configuration file to update. Defaults to ./ldap_auth.json")
-parser_new.add_argument("-x, --x509-config-file", type=str, default="./x509_auth.json", dest="x509_config_file", help="Location of the x509 JSON configuration file to update. Defaults to ./x509_auth.json")
-parser_new.add_argument("-r, --read-users", dest="read_users", nargs="+", help="Supply usernames for users who should have read and list permissions")
-parser_new.add_argument("-w, --write-users", dest="write_users", nargs="+", help="Supply usernames for users who should have read, list, write and delete permissions")
-parser_new.add_argument("-u, --username-attr", type=str, dest="username_attr", required=True, help="The name of the attribute in which the username is stored.")
-parser_new.add_argument("-c, --ceph-server", type=str, required=True, dest="ceph_server", help="URL of the underlying ceph server")
-parser_new.add_argument("-d, --dynafed-server", type=str, dest="dynafed_server", help="URL of the DynaFed server")
-parser_new.add_argument("--public-key", type=str, required=True, dest="public_key", help="AWS access key id")
-parser_new.add_argument("--private-key", type=str, required=True, dest="private_key", help="AWS secret access key")
-parser_new.set_defaults(func=create_new_bucket)
+# parser for new_ldap command
+parser_new_ldap = subparsers.add_parser("new_ldap", help="Create a new LDAP protected DynaFed bucket and generate all the configuration for it")
+parser_new_ldap.add_argument("name", type=str, help="Name of the DynaFed bucket you would like to create")
+parser_new_ldap.add_argument("-f, --file", type=str, required=True, dest="file", help="Location of the JSON configuration file to act on.")
+parser_new_ldap.add_argument("-r, --read-users", dest="read_users", nargs="+", help="Supply usernames for users who should have read and list permissions")
+parser_new_ldap.add_argument("-w, --write-users", dest="write_users", nargs="+", help="Supply usernames for users who should have read, list, write and delete permissions")
+parser_new_ldap.add_argument("-u, --username-attr", type=str, dest="username_attr", required=True, help="The name of the attribute in which the username is stored.")
+parser_new_ldap.add_argument("-c, --ceph-server", type=str, required=True, dest="ceph_server", help="URL of the underlying ceph server")
+parser_new_ldap.add_argument("-d, --dynafed-server", type=str, dest="dynafed_server", help="URL of the DynaFed server")
+parser_new_ldap.add_argument("--public-key", type=str, required=True, dest="public_key", help="AWS access key id")
+parser_new_ldap.add_argument("--private-key", type=str, required=True, dest="private_key", help="AWS secret access key")
+parser_new_ldap.set_defaults(func=create_new_ldap_bucket)
+
+# parser for new_x509 command
+parser_new_x509 = subparsers.add_parser("new_x509", help="Create a new X509 protected DynaFed bucket and generate all the configuration for it")
+parser_new_x509.add_argument("-f, --file", type=str, required=True, dest="file", help="Location of the JSON configuration file to act on.")
+parser_new_x509.add_argument("name", type=str, help="Name of the DynaFed bucket you would like to create")
+parser_new_x509.add_argument("-r, --read-users", dest="read_users", nargs="+", help="Supply usernames for users who should have read and list permissions")
+parser_new_x509.add_argument("-w, --write-users", dest="write_users", nargs="+", help="Supply usernames for users who should have read, list, write and delete permissions")
+parser_new_x509.add_argument("-c, --ceph-server", type=str, required=True, dest="ceph_server", help="URL of the underlying ceph server")
+parser_new_x509.add_argument("-d, --dynafed-server", type=str, dest="dynafed_server", help="URL of the DynaFed server")
+parser_new_x509.add_argument("--public-key", type=str, required=True, dest="public_key", help="AWS access key id")
+parser_new_x509.add_argument("--private-key", type=str, required=True, dest="private_key", help="AWS secret access key")
+parser_new_x509.set_defaults(func=create_new_x509_bucket)
 
 # parser for addusers command
 parser_addusers = subparsers.add_parser("addusers", help="Add a new users to an endpoint in the authorisation file")
+parser_addusers.add_argument("-f, --file", type=str, required=True, dest="file", help="Location of the JSON configuration file to act on.")
 parser_addusers.add_argument("endpoint_path", help="Endpoint path to add users to the authorisation info")
 parser_addusers.add_argument("-r, --read-users", dest="read_users", nargs="+", help="Supply usernames for users who should have read and list permissions")
 parser_addusers.add_argument("-w, --write-users", dest="write_users", nargs="+", help="Supply usernames for users who should have read, list, write and delete permissions")
@@ -1039,18 +1013,21 @@ parser_addusers.set_defaults(func=add_users)
 
 # parser for remove command
 parser_remove = subparsers.add_parser("remove", help="Remove a new endpoint to the authorisation file")
+parser_remove.add_argument("-f, --file", type=str, required=True, dest="file", help="Location of the JSON configuration file to act on.")
 parser_remove.add_argument("endpoint_path", help="Endpoint path to remove from authorisation file")
 parser_remove.set_defaults(func=remove_endpoint)
 
 # parser for server command
 parser_server = subparsers.add_parser("server", help="Get the name of the LDAP server or provide a new URI and set a new LDAP server")
+parser_server.add_argument("-f, --file", type=str, required=True, dest="file", help="Location of the JSON configuration file to act on.")
 parser_server.add_argument("server", nargs="?", help="Supply a server name to set the LDAP server in the configuration")
 parser_server.set_defaults(func=server)
 
 # parser for prefix command
-parser_server = subparsers.add_parser("prefix", help="Get the federation prefix for DynaFed or provide a new prefix. This will be prepended to all endpoints")
-parser_server.add_argument("prefix", nargs="?", help="Supply a prefix to set the federation prefix in the configuration")
-parser_server.set_defaults(func=server)
+parser_prefix = subparsers.add_parser("prefix", help="Get the federation prefix for DynaFed or provide a new prefix. This will be prepended to all endpoints")
+parser_prefix.add_argument("-f, --file", type=str, required=True, dest="file", help="Location of the JSON configuration file to act on.")
+parser_prefix.add_argument("prefix", nargs="?", help="Supply a prefix to set the federation prefix in the configuration")
+parser_prefix.set_defaults(func=prefix)
 
 # parser for convert command
 parser_convert = subparsers.add_parser("convert", help="Convert an old style AuthDB json file into LDAP config json")
