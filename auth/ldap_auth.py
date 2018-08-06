@@ -118,8 +118,6 @@ def process_condition(condition, user_info):
 # The main function that has to be invoked from ugr to determine if a request
 # has to be performed or not
 def isallowed(clientname="unknown", remoteaddr="nowhere", resource="none", mode="0", fqans=None, keys=None):
-    start_time = time.time()
-
     result = myauthjson.auth_info_for_path(resource)
     if result is None:
         # failed to match anything, means the path isn't supposed protected by this plugin
@@ -171,12 +169,6 @@ def isallowed(clientname="unknown", remoteaddr="nowhere", resource="none", mode=
         match = process_condition(condition, user_info)
 
         if match and mode in item["permissions"]:
-            # for testing, so we can see how long doing LDAP search + match takes
-            if cache_miss:
-                print "ldap cache miss: " + str(time.time() - start_time)
-            else:
-                print "ldap cache hit: " + str(time.time() - start_time)
-
             # if we match on all attributes for this spec and the mode matches the permissions then let them in!
             return 0
 
