@@ -10,22 +10,26 @@ from selenium.webdriver.common.by import By
 import json
 import requests
 
+ldap_test_server = "vm28.nubes.stfc.ac.uk"
+shib_test_server = "vm181.nubes.stfc.ac.uk"
+credentials_file = "/home/mnf98541/Dynafed/credentials.json"
+firefox_path = "/home/mnf98541/Downloads/firefox-58.0.2/firefox"
+firefox_profile_path = "/home/mnf98541/.mozilla/firefox/u2v7wxvi.default"
+
 
 class LDAPAuthnTest(unittest.TestCase):
-    server = "vm28.nubes.stfc.ac.uk"
-
     def setUp(self):
-        binary = FirefoxBinary("/home/mnf98541/Downloads/firefox-58.0.2/firefox")
+        binary = FirefoxBinary(firefox_path)
         self.driver = webdriver.Firefox(firefox_binary=binary)
 
-        with open("../credentials.json", "r") as f:
+        with open(credentials_file, "r") as f:
             f_json = json.load(f)
             self.username = f_json["louise"]["username"]
             self.password = f_json["louise"]["password"]
 
     def test_login(self):
         driver = self.driver
-        driver.get("https://" + self.server + "/myfed/ldap/")
+        driver.get("https://" + ldap_test_server + "/myfed/ldap/")
 
         # if we get a pop up, then authentication is on
         popup = True
@@ -46,7 +50,7 @@ class LDAPAuthnTest(unittest.TestCase):
 
     def test_login_fail(self):
         driver = self.driver
-        driver.get("https://" + "wrong_username" + ":" + "wrong_password" + "@" + self.server + "/myfed/ldap")
+        driver.get("https://" + "wrong_username" + ":" + "wrong_password" + "@" + ldap_test_server + "/myfed/ldap")
 
         # if we get a pop up, then our username and password were wrong
         # if we don't get a pop up then it was accepted for some reason
@@ -67,20 +71,18 @@ class LDAPAuthnTest(unittest.TestCase):
 
 
 class LDAPAuthzTest(unittest.TestCase):
-    server = "vm28.nubes.stfc.ac.uk"
-
     def setUp(self):
-        binary = FirefoxBinary("/home/mnf98541/Downloads/firefox-58.0.2/firefox")
+        binary = FirefoxBinary(firefox_path)
         self.driver = webdriver.Firefox(firefox_binary=binary)
 
-        with open("../credentials.json", "r") as f:
+        with open(credentials_file, "r") as f:
             f_json = json.load(f)
             self.username = f_json["louise"]["username"]
             self.password = f_json["louise"]["password"]
 
     def test_access_allowed(self):
         driver = self.driver
-        driver.get("https://" + self.server + "/myfed/ldap/test/authorised")
+        driver.get("https://" + ldap_test_server + "/myfed/ldap/test/authorised")
 
         WebDriverWait(driver, 5).until(EC.alert_is_present())
 
@@ -94,7 +96,7 @@ class LDAPAuthzTest(unittest.TestCase):
 
     def test_access_denied(self):
         driver = self.driver
-        driver.get("https://" + self.server + "/myfed/ldap/test/unauthorised")
+        driver.get("https://" + ldap_test_server + "/myfed/ldap/test/unauthorised")
 
         WebDriverWait(driver, 5).until(EC.alert_is_present())
 
@@ -110,13 +112,13 @@ class LDAPAuthzTest(unittest.TestCase):
     def test_download_access_success(self):
         # use requests here to test we get a 200 response when trying to directly download a file
 
-        r = requests.get("https://" + self.server + "/myfed/ldap/test/authorised/Smudge.jpg", auth=(self.username, self.password), verify=False)
+        r = requests.get("https://" + ldap_test_server + "/myfed/ldap/test/authorised/Smudge.jpg", auth=(self.username, self.password), verify=False)
         self.assertEqual(r.status_code, 200)
 
     def test_download_access_fail(self):
         # use requests here to test we get a 403 response when trying to directly download a file
 
-        r = requests.get("https://" + self.server + "/myfed/ldap/test/unauthorised/Smudge.jpg", auth=(self.username, self.password), verify=False)
+        r = requests.get("https://" + ldap_test_server + "/myfed/ldap/test/unauthorised/Smudge.jpg", auth=(self.username, self.password), verify=False)
         self.assertEqual(r.status_code, 403)
 
     def tearDown(self):
@@ -124,23 +126,22 @@ class LDAPAuthzTest(unittest.TestCase):
 
 
 class CertificateAuthSuccessTest(unittest.TestCase):
-    server = "vm28.nubes.stfc.ac.uk"
-
     def setUp(self):
-        binary = FirefoxBinary("/home/mnf98541/Downloads/firefox-58.0.2/firefox")
+        binary = FirefoxBinary(firefox_path)
         # need to specify our profile so it can use our certificate
-        profile = webdriver.FirefoxProfile("/home/mnf98541/.mozilla/firefox/u2v7wxvi.default")
+        # see https://stackoverflow.com/questions/17437407/how-to-import-ssl-certificates-for-firefox-with-selenium-in-python
+        profile = webdriver.FirefoxProfile(firefox_profile_path)
         self.driver = webdriver.Firefox(profile, firefox_binary=binary)
 
     def test_login(self):
         driver = self.driver
-        driver.get("https://" + self.server + "/myfed/x509/test/unprotected")
+        driver.get("https://" + ldap_test_server + "/myfed/x509/test/unprotected")
 
         self.assertIn("/C=UK/O=eScience/OU=CLRC/L=RAL/CN=louise davies", driver.page_source)
 
     def test_see_all_buckets(self):
         driver = self.driver
-        driver.get("https://" + self.server + "/myfed/x509")
+        driver.get("https://" + ldap_test_server + "/myfed/x509")
 
         WebDriverWait(driver, 5).until(EC.title_is("/myfed/x509/"))
         self.assertIn("atlas", driver.page_source)
@@ -154,21 +155,21 @@ class CertificateAuthSuccessTest(unittest.TestCase):
 
     def test_access_allowed_simple(self):
         driver = self.driver
-        driver.get("https://" + self.server + "/myfed/x509/test/authorised")
+        driver.get("https://" + ldap_test_server + "/myfed/x509/test/authorised")
 
         WebDriverWait(driver, 5).until(EC.title_is("/myfed/x509/test/authorised/"))
         self.assertIn("Smudge.jpg", driver.page_source)
 
     def test_access_allowed(self):
         driver = self.driver
-        driver.get("https://" + self.server + "/myfed/x509/enmr/ccp4-data")
+        driver.get("https://" + ldap_test_server + "/myfed/x509/enmr/ccp4-data")
 
         WebDriverWait(driver, 5).until(EC.title_is("/myfed/x509/enmr/ccp4-data/"))
         self.assertIn("Powered by LCGDM-DAV", driver.page_source)
 
     def test_access_denied_simple(self):
         driver = self.driver
-        driver.get("https://" + self.server + "/myfed/x509/test/unauthorised")
+        driver.get("https://" + ldap_test_server + "/myfed/x509/test/unauthorised")
 
         WebDriverWait(driver, 5).until(EC.title_is("403 Forbidden"))
 
@@ -176,7 +177,7 @@ class CertificateAuthSuccessTest(unittest.TestCase):
 
     def test_access_denied(self):
         driver = self.driver
-        driver.get("https://" + self.server + "/myfed/x509/enmr/ccp4-jobs")
+        driver.get("https://" + ldap_test_server + "/myfed/x509/enmr/ccp4-jobs")
 
         WebDriverWait(driver, 5).until(EC.title_is("403 Forbidden"))
 
@@ -187,16 +188,14 @@ class CertificateAuthSuccessTest(unittest.TestCase):
 
 
 class CertificateAuthFailureTest(unittest.TestCase):
-    server = "vm28.nubes.stfc.ac.uk"
-
     def setUp(self):
-        binary = FirefoxBinary("/home/mnf98541/Downloads/firefox-58.0.2/firefox")
+        binary = FirefoxBinary(firefox_path)
         # don't specify profile, so we don't have certificate
         self.driver = webdriver.Firefox(firefox_binary=binary)
 
     def test_login_fail(self):
         driver = self.driver
-        driver.get("https://" + self.server + "/myfed/x509/test/authorised")
+        driver.get("https://" + ldap_test_server + "/myfed/x509/test/authorised")
 
         WebDriverWait(driver, 5).until(EC.title_is("403 Forbidden"))
 
@@ -207,17 +206,16 @@ class CertificateAuthFailureTest(unittest.TestCase):
 
 
 class ShibAuthnTest(unittest.TestCase):
-    server = "vm181.nubes.stfc.ac.uk"
-
     def setUp(self):
-        binary = FirefoxBinary("/home/mnf98541/Downloads/firefox-58.0.2/firefox")
+        binary = FirefoxBinary(firefox_path)
         self.driver = webdriver.Firefox(firefox_binary=binary)
+        # these are the username and password for TestShib
         self.username = "myself"
         self.password = "myself"
 
     def test_login(self):
         driver = self.driver
-        driver.get("https://" + self.server + "/myfed")
+        driver.get("https://" + shib_test_server + "/myfed")
 
         # if we get a pop up, then authentication is on
         try:
@@ -240,7 +238,7 @@ class ShibAuthnTest(unittest.TestCase):
 
     def test_login_fail(self):
         driver = self.driver
-        driver.get("https://" + self.server + "/myfed")
+        driver.get("https://" + shib_test_server + "/myfed")
 
         # if we get a pop up, then authentication is on
         login_page = True
@@ -266,17 +264,16 @@ class ShibAuthnTest(unittest.TestCase):
 
 
 class ShibAuthzTest(unittest.TestCase):
-    server = "vm181.nubes.stfc.ac.uk"
-
     def setUp(self):
-        binary = FirefoxBinary("/home/mnf98541/Downloads/firefox-58.0.2/firefox")
+        binary = FirefoxBinary(firefox_path)
         self.driver = webdriver.Firefox(firefox_binary=binary)
+        # these are the username and password for TestShib
         self.username = "myself"
         self.password = "myself"
 
     def test_access_allowed(self):
         driver = self.driver
-        driver.get("https://" + self.server + "/myfed/shib/authorised")
+        driver.get("https://" + shib_test_server + "/myfed/shib/authorised")
 
         WebDriverWait(driver, 5).until(EC.title_is("TestShib Identity Provider Login"))
 
@@ -292,7 +289,7 @@ class ShibAuthzTest(unittest.TestCase):
 
     def test_access_denied(self):
         driver = self.driver
-        driver.get("https://" + self.server + "/myfed/shib/unauthorised")
+        driver.get("https://" + shib_test_server + "/myfed/shib/unauthorised")
 
         WebDriverWait(driver, 5).until(EC.title_is("TestShib Identity Provider Login"))
 
@@ -313,7 +310,7 @@ class ShibAuthzTest(unittest.TestCase):
         # need to login first...
 
         driver = self.driver
-        driver.get("https://" + self.server + "/myfed/")
+        driver.get("https://" + shib_test_server + "/myfed/")
 
         WebDriverWait(driver, 5).until(EC.title_is("TestShib Identity Provider Login"))
 
@@ -326,9 +323,10 @@ class ShibAuthzTest(unittest.TestCase):
 
         WebDriverWait(driver, 5).until(EC.title_is("/myfed/"))
 
+        # use the cookies to see if this allows us to download a file with our credentials
         cookies = {i['name']: i['value'] for i in driver.get_cookies()}
 
-        r = requests.get("https://" + self.server + "/myfed/shib/authorised/Smudge.jpg", cookies=cookies, verify=False)
+        r = requests.get("https://" + shib_test_server + "/myfed/shib/authorised/Smudge.jpg", cookies=cookies, verify=False)
         self.assertEqual(r.status_code, 200)
 
     def test_download_access_fail(self):
@@ -337,7 +335,7 @@ class ShibAuthzTest(unittest.TestCase):
         # need to login first...
 
         driver = self.driver
-        driver.get("https://" + self.server + "/myfed/")
+        driver.get("https://" + shib_test_server + "/myfed/")
 
         WebDriverWait(driver, 5).until(EC.title_is("TestShib Identity Provider Login"))
 
@@ -350,9 +348,10 @@ class ShibAuthzTest(unittest.TestCase):
 
         WebDriverWait(driver, 5).until(EC.title_is("/myfed/"))
 
+        # use the cookies to see if this allows us to download a file with our credentials
         cookies = {i['name']: i['value'] for i in driver.get_cookies()}
 
-        r = requests.get("https://" + self.server + "/myfed/shib/unauthorised/Smudge.jpg", cookies=cookies, verify=False)
+        r = requests.get("https://" + shib_test_server + "/myfed/shib/unauthorised/Smudge.jpg", cookies=cookies, verify=False)
         self.assertEqual(r.status_code, 403)
 
     def tearDown(self):
