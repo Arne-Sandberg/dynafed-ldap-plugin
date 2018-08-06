@@ -18,11 +18,6 @@ import ldap3
 import time
 from cachetools import TTLCache
 
-# A class that one day may implement an authorization list loaded
-# from a file during the initialization of the module.
-# If this list is written only during initialization, and used as a read-only thing
-# no synchronization primitives (e.g. semaphores) are needed, and the performance will be maximized
-
 
 # use this to strip trailing slashes so that we don't trip up any equalities due to them
 def strip_end(string, suffix):
@@ -32,6 +27,8 @@ def strip_end(string, suffix):
         return string
 
 
+# a class that loads the JSON configution file that details the authorisation info for paths
+# this is called during the initialisation of the module
 class _AuthJSON(object):
     auth_dict = {}
     path_list = []
@@ -73,7 +70,7 @@ class _AuthJSON(object):
 # Initialize a global instance of the authlist class, to be used inside the isallowed() function
 myauthjson = _AuthJSON()
 
-# initialise server outside of isallowed so to reduce set-up/tear-down costs
+# initialise LDAP server outside of isallowed so to reduce set-up/tear-down costs
 s = ldap3.Server(myauthjson.auth_dict["server"])
 c = ldap3.Connection(s, client_strategy=ldap3.RESTARTABLE)
 c.open()
@@ -83,6 +80,7 @@ c.start_tls()
 cache = TTLCache(maxsize=256, ttl=1800)
 
 
+# given a authorisation condition and the user info, does the user satisfy the condition?
 # return true or false based on condition
 def process_condition(condition, user_info):
     # empty list = don't check any attributes, so auto match
@@ -124,7 +122,11 @@ def isallowed(clientname="unknown", remoteaddr="nowhere", resource="none", mode=
 
     result = myauthjson.auth_info_for_path(resource)
     if result is None:
-        # failed to match anything
+        # failed to match anything, means the path isn't supposed protected by this plugin
+
+        # shouldn't really happen, as usually the base path at least will be specified
+        # unless there are mutiple auth plugins and you want to reduce repetition of granting
+        # things on base path
         return 1
 
     auth_info = result["auth_info"]
@@ -153,13 +155,13 @@ def isallowed(clientname="unknown", remoteaddr="nowhere", resource="none", mode=
         cache.update([(clientname, entries)])
 
     if len(entries) == 1:
-        # this should always happen (since we're searching on username) but just to be sure
+        # this should always happen if they authenticated (since we're searching on username) but just to be sure
         user_info = entries[0]
     elif len(entries) == 0:
-        # most likely anonymous user
+        # they mustn't have authenticated, anonymous user
         user_info = None
     else:
-        # error, two usernames???
+        # error, more than one username matched??? just deny and log error
         print("more than 1 username found when looking up - error!")
         return 1
 
