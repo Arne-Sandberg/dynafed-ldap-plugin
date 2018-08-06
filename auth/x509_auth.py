@@ -45,6 +45,8 @@ def strip_end(string, suffix):
         return string
 
 
+# a class that loads the JSON configution file that details the authorisation info for paths
+# this is called during the initialisation of the module
 class _AuthJSON(object):
     auth_dict = {}
     path_list = []
@@ -88,6 +90,7 @@ myauthlist = _Authlist()
 myauthjson = _AuthJSON()
 
 
+# given a authorisation condition and the user's clientname, does the user satisfy the condition?
 # return true or false based on condition
 def process_condition(condition, clientname):
     # empty list = don't check any attributes, so auto match
@@ -127,7 +130,11 @@ def process_condition(condition, clientname):
 def isallowed(clientname="unknown", remoteaddr="nowhere", resource="none", mode="0", fqans=None, keys=None):
     result = myauthjson.auth_info_for_path(resource)
     if result is None:
-        # failed to match anything
+        # failed to match anything, means the path isn't supposed protected by this plugin
+
+        # shouldn't really happen, as usually the base path at least will be specified
+        # unless there are mutiple auth plugins and you want to reduce repetition of granting
+        # things on base path
         return 1
 
     auth_info = result["auth_info"]
