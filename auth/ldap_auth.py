@@ -142,12 +142,10 @@ def isallowed(clientname="unknown", remoteaddr="nowhere", resource="none", mode=
         if ip["ip"] == remoteaddr and mode in ip["permissions"]:
             return 0
 
-    cache_miss = False
     if clientname in cache:
         # in cache, don't need to do LDAP search
         entries = cache[clientname]
     else:
-        cache_miss = True
         c.search("dc=fed,dc=cclrc,dc=ac,dc=uk", "(cn=" + clientname + ")", attributes=ldap3.ALL_ATTRIBUTES)
         entries = c.entries
         cache.update([(clientname, entries)])
